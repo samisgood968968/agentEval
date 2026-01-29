@@ -1,0 +1,3153 @@
+
+[toc]
+
+# 第一步: 克隆仓库并安装依赖
+>**完成第一步后得到**:
+>- Python 3.12.11 运行环境 + 168个依赖包
+>- Node.js v22.16.0 + npm v11.4.1
+>- **38 个 MCP 服务器** (支持文件、GitHub、浏览器、邮件、日历等操作)
+>- kubectl + kind (Kubernetes 工具链)
+>- 系统参数优化 (如有 sudo 权限)
+
+## 1.1 克隆仓库
+```bash
+git clone https://github.com/hkust-nlp/Toolathlon.git
+cd Toolathlon
+```
+
+## 1.2 安装 uv (Python 包管理器)
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+**验证安装**:
+```bash
+uv --version
+```
+
+## 1.3 运行自动化安装脚本
+
+```bash
+# true 表示有 sudo 权限，推荐使用
+# 如果没有 sudo 权限，使用 false (会安装到 ~/bin 目录)
+bash global_preparation/install_env_minimal.sh true
+```
+
+**这个脚本执行的完整流程如下:**
+
+### **阶段 1: 初始化配置文件**
+自动复制配置模板(如果不存在):
+- `configs/global_configs_example.py` → `configs/global_configs.py`
+- `configs/token_key_session_example.py` → `configs/token_key_session.py`
+
+### **阶段 2: 安装 Python 依赖 (168 包)**
+运行 `uv sync` 安装所有 Python 包，包括:
+- **API 客户端**: `google-api-python-client`， `canvasapi`， `gspread`， `notion-client`
+- **数据处理**: `datasets`， `beautifulsoup4`， `pandas`， `Pillow`
+- **AI 模型**: `anthropic`， `openai`， `transformers`
+- **邮件处理**: `imapclient`， `exchangelib`
+- **Web 自动化**: `playwright`， `selenium`
+- **云服务**: `google-cloud-storage`， `google-cloud-bigquery`， `snowflake-connector-python`
+- 完整列表见 [`pyproject.toml`](https://github.com/hkust-nlp/Toolathlon/blob/main/pyproject.toml)
+
+### **阶段 3: 安装 Node.js 和 npm**
+检查系统中的 Node.js 版本:
+- **如果版本 < 22 或未安装**: 
+  - 通过 NVM (Node Version Manager) 安装 **Node.js v22.16.0**
+  - 安装 **npm v11.4.1**
+  - 设置为默认版本
+- **如果已满足版本要求**: 跳过安装
+
+### **阶段 4: 安装 MCP 服务器 (核心步骤)**
+运行 `npm install` 安装 **38 个 MCP (Model Context Protocol) 服务器**:
+
+**核心 MCP 服务器**:
+| MCP 服务器 | 用途 | 包名 |
+|-----------|------|------|
+| **Filesystem** | 文件读写操作 | `@modelcontextprotocol/server-filesystem` |
+| **GitHub** | 代码仓库操作 | `@modelcontextprotocol/server-github` |
+| **Google Maps** | 地图/位置服务 | `@modelcontextprotocol/server-google-maps` |
+| **Notion** | 笔记管理 | `@notionhq/notion-mcp-server` |
+| **Puppeteer** | 浏览器自动化 | `@modelcontextprotocol/server-puppeteer` |
+| **Gmail** | 邮件发送/接收 | `@gongrzhe/server-gmail-autoauth-mcp` |
+| **Google Calendar** | 日历管理 | `@gongrzhe/server-calendar-autoauth-mcp` |
+| **Canvas LMS** | 学习管理系统 | `canvas-mcp-server` |
+| **WooCommerce** | 电商平台操作 | `@lockon0927/woocommerce-mcp` |
+| **Kubernetes** | 容器编排 | `mcp-server-kubernetes` |
+| **Excel** | 表格处理 | `@negokaz/excel-mcp-server` |
+| **PDF Reader** | PDF 文档读取 | `@sylphlab/pdf-reader-mcp` |
+| **LeetCode** | 编程题目提交 | `@jinzcdev/leetcode-mcp-server` |
+| **Twitter** | 社交媒体操作 | `@enescinar/twitter-mcp` |
+| **YouTube** | 视频字幕提取 | `@sinco-lab/mcp-youtube-transcript` |
+
+**专用 MCP 服务器**:
+- **图表生成**: `@antv/mcp-server-chart`
+- **思维导图**: `@41px/mcp-xmind`
+- **代码执行**: `mcp-server-code-runner`
+- **网页抓取**: `firecrawl-mcp`， `hyperbrowser-mcp`
+- **搜索引擎**: `@adenot/mcp-google-search`
+- **加密货币**: `mcp-crypto-price`
+- **中国 12306 购票**: `12306-mcp`
+- **菜谱查询**: `howtocook-mcp`
+- 完整 38 个 见 [`package.json`](https://github.com/hkust-nlp/Toolathlon/blob/main/package.json)
+
+### **阶段 5: 安装 Kubernetes 工具**
+运行 `deployment/k8s/scripts/prepare.sh`:
+- **kubectl v1.34.1** - Kubernetes 命令行工具
+- **kind v0.20.0** - 本地 Kubernetes 集群管理器
+
+安装位置:
+- **有 sudo**: `/usr/local/bin/`
+- **无 sudo**: `~/bin/` (需手动添加到 PATH)
+
+### **阶段 6: 配置系统参数 (需要 sudo)**
+如果使用 `true` 参数，会自动配置 `/etc/sysctl.conf`:
+```conf
+fs.inotify.max_user_watches=1048576    # 文件监控数量
+fs.inotify.max_user_instances=16384    # inotify 实例数
+fs.inotify.max_queued_events=16384     # 队列事件数
+user.max_user_namespaces=10000         # 用户命名空间数
+```
+
+这些参数是**支持并行运行多个 Kubernetes 任务**的必要配置。
+
+## 1.4 验证安装
+
+```bash
+# 检查 Python 环境
+uv run python --version  # 应显示 Python 3.12.11
+
+# 检查 Node.js 和 npm
+node --version  # 应显示 v22.16.0 或更高
+npm --version   # 应显示 v11.4.1 或更高
+
+# 检查 Kubernetes 工具
+kubectl version --client  # 应显示 v1.34.1
+kind version              # 应显示 v0.20.0
+
+# 检查 MCP 服务器安装
+ls node_modules/@modelcontextprotocol/  # 应看到多个 MCP 服务器目录
+```
+
+## 1.5 安装预计时间
+
+| 项目 | 预计时间 | 备注 |
+|------|---------|------|
+| Python 依赖 | 5-10 分钟 | 取决于网络速度 |
+| Node.js/npm | 3-5 分钟 | 如需安装 |
+| MCP 服务器 | 10-15 分钟 | 38 个包，较大 |
+| Kubernetes 工具 | 1-2 分钟 | 二进制文件下载 |
+| **总计** | **约 20-30 分钟** | 首次安装 |
+
+
+## 常见问题
+
+<details>
+<summary><b>Q: 脚本报错 "uv could not be found"</b></summary>
+
+**解决方法**:
+```bash
+# 确保 uv 在 PATH 中
+export PATH="$HOME/.local/bin:$PATH"
+# 或重新加载配置
+source ~/.bashrc  # 或 ~/.zshrc
+```
+</details>
+
+<details>
+<summary><b>Q: npm install 非常慢或失败</b></summary>
+
+**解决方法**:
+```bash
+# 使用国内镜像
+npm config set registry https://registry.npmmirror.com
+# 重新运行安装
+npm install
+```
+</details>
+
+<details>
+<summary><b>Q: 没有 sudo 权限怎么办?</b></summary>
+
+**解决方法**:
+```bash
+# 使用 false 参数
+bash global_preparation/install_env_minimal.sh false
+
+# 手动添加 ~/bin 到 PATH (添加到 ~/.bashrc 或 ~/.zshrc)
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**注意**: 系统参数需手动配置(见脚本输出的提示)。
+</details>
+
+---
+
+
+# 第二步: 安装并配置容器引擎 (Docker/Podman)
+
+Toolathlon 通过**容器隔离**运行每个评估任务，确保任务间互不干扰且支持并行执行。需要先安装 Docker 或 Podman，然后配置并拉取预构建的评估镜像。
+
+>**完成第二步后得到**：
+>- 已安装并配置 Docker 或 Podman
+>- 已配置 `configs/global_configs.py` 中的容器引擎选择
+>- 已拉取 3.5GB 的预构建评估镜像
+>- 已验证镜像可以正常运行
+>- (Podman) 已启动 socket 并配置权限
+
+## 2.1 选择并安装容器引擎
+
+需要选择以下其中一种容器引擎:
+
+<details>
+<summary><b>选项 A: 使用 Docker (推荐)</b></summary>
+
+### 安装 Docker
+
+```bash
+# Ubuntu/Debian
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# 将当前用户添加到 docker 组 (避免每次使用 sudo)
+sudo usermod -aG docker $USER
+newgrp docker  # 刷新用户组，或重新登录
+
+# 启动 Docker 服务
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+### 验证安装
+
+```bash
+docker --version
+# 应显示: Docker version 24.0.x 或更高
+
+docker ps
+# 应显示空列表 (没有运行中的容器)
+```
+
+### 配置 Docker Socket
+
+Docker 需要通过 `/var/run/docker.sock` 与容器内的任务通信:
+
+```bash
+# 检查 socket 是否存在
+ls -l /var/run/docker.sock
+
+# 应显示类似:
+# srw-rw---- 1 root docker 0 Jan 28 10:00 /var/run/docker.sock
+```
+
+如果当前用户不在 `docker` 组中，会遇到权限问题:
+```bash
+# 确认当前用户在 docker 组中
+groups | grep docker
+
+# 如果没有，执行:
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+</details>
+
+<details>
+<summary><b>选项 B: 使用 Podman</b></summary>
+
+### 安装 Podman
+
+```bash
+# Ubuntu 20.10+
+sudo apt-get update
+sudo apt-get install -y podman
+
+# CentOS/RHEL/AlmaLinux
+sudo dnf install -y podman
+
+# 或从官方源安装最新版本 (推荐)
+sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_$(lsb_release -rs)/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/xUbuntu_$(lsb_release -rs)/Release.key -O- | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install -y podman
+```
+
+### 验证安装
+
+```bash
+podman --version
+# 应显示: podman version 4.0.0 或更高
+
+podman ps
+# 应显示空列表
+```
+
+### 启动 Podman Socket (关键步骤)
+
+Podman 需要启动 socket 服务才能在容器内使用:
+
+```bash
+# 方式 1: 用户级 socket (推荐，不需要 sudo)
+systemctl --user start podman.socket
+systemctl --user enable podman.socket  # 开机自启
+
+# 验证 socket 是否运行
+systemctl --user status podman.socket
+
+# 检查 socket 文件是否存在
+ls -l /run/user/$(id -u)/podman/podman.sock
+```
+
+如果有 sudo 权限，也可以使用系统级 socket:
+```bash
+# 方式 2: 系统级 socket (需要 sudo)
+sudo systemctl start podman.socket
+sudo systemctl enable podman.socket
+
+# 检查 socket 文件
+ls -l /run/podman/podman.sock
+```
+
+**重要**: 如果不启动 socket，Kind (Kubernetes) 相关任务将无法运行!
+
+</details>
+
+
+## 2.2 配置容器引擎选择
+
+编辑 `configs/global_configs.py` 文件 (已在第一步自动创建):
+
+```bash
+# 打开配置文件
+vim configs/global_configs.py  # 或使用 nano， code 等编辑器
+```
+
+**关键配置项**:
+
+```python
+from addict import Dict
+global_configs = Dict(
+    # ============ 容器引擎配置 (必填) ============
+    podman_or_docker="docker"，  # 👈 改为 "docker" 或 "podman"
+    
+    # ============ Notion 配置 (一般不需要改) ============
+    notion_preprocess_with_playwright=False，  # 保持默认 False
+    
+    # ============ 模型 API Keys (可选，见第六步) ============
+    aihubmix_key="xxx"，
+    openrouter_key="xxx"，
+    anthropic_official_key="xxx"，
+    openai_official_key="xxx"，
+    # ... 其他 API keys
+)
+```
+
+**根据选择修改**:
+- 如果安装了 **Docker**: 设置为 `"docker"`
+- 如果安装了 **Podman**: 设置为 `"podman"`
+
+**验证配置**:
+```bash
+# 检查配置是否正确读取
+uv run python -c "import sys; sys.path.append('configs'); from global_configs import global_configs; print(f'Container engine: {global_configs.podman_or_docker}')"
+
+# 应输出: Container engine: docker (或 podman)
+```
+
+## 2.3 拉取预构建的评估镜像
+
+Toolathlon 提供了预构建的 Docker 镜像 (`lockon0927/toolathlon-task-image:1016beta`)，包含:
+- 完整的 Python 3.12 + uv 环境
+- Node.js 22 + npm 11
+- kubectl， kind， helm (Kubernetes 工具链)
+- Docker/Podman 客户端
+- Playwright 浏览器依赖
+- 所有系统级依赖
+
+### 执行拉取脚本
+
+```bash
+bash global_preparation/pull_toolathlon_image.sh
+```
+
+**脚本执行流程**:
+1. 读取 `configs/global_configs.py` 中的 `podman_or_docker` 配置
+2. 根据配置执行对应的拉取命令:
+   - Docker: `docker pull docker.io/lockon0927/toolathlon-task-image:1016beta`
+   - Podman: `podman pull docker.io/lockon0927/toolathlon-task-image:1016beta`
+
+### 预计下载时间和大小
+
+| 项目 | 信息 |
+|------|------|
+| **镜像大小** | 约 3.5 GB (压缩后) |
+| **下载时间** | 10-30 分钟 (取决于网络速度) |
+| **基础镜像** | Ubuntu 22.04 |
+| **架构** | linux/amd64 |
+
+**监控下载进度**:
+```bash
+# Docker
+docker pull docker.io/lockon0927/toolathlon-task-image:1016beta
+
+# Podman
+podman pull docker.io/lockon0927/toolathlon-task-image:1016beta
+```
+
+## 2.4 验证镜像安装
+
+### 检查镜像是否存在
+
+```bash
+# Docker
+docker images | grep toolathlon-task-image
+
+# Podman
+podman images | grep toolathlon-task-image
+```
+
+**预期输出**:
+```
+REPOSITORY                              TAG          IMAGE ID       CREATED        SIZE
+lockon0927/toolathlon-task-image        1016beta     a1b2c3d4e5f6   2 weeks ago    3.5GB
+```
+
+### 测试镜像运行
+
+```bash
+# Docker
+docker run --rm lockon0927/toolathlon-task-image:1016beta uv --version
+
+# Podman
+podman run --rm lockon0927/toolathlon-task-image:1016beta uv --version
+```
+
+**预期输出**:
+```
+uv 0.x.x
+```
+
+## 2.5 配置容器权限 (Podman 用户额外步骤)
+
+如果使用 Podman，需要配置 **无根容器 (rootless container)** 的权限:
+
+```bash
+# 1. 增加用户子 UID/GID 范围
+echo "$USER:100000:65536" | sudo tee -a /etc/subuid
+echo "$USER:100000:65536" | sudo tee -a /etc/subgid
+
+# 2. 重新加载用户配置
+podman system migrate
+
+# 3. 验证配置
+podman unshare cat /proc/self/uid_map
+# 应显示:
+#          0       1000          1
+#          1     100000      65536
+```
+
+## 常见问题
+
+<details>
+<summary><b>Q: Docker 拉取镜像时报错 "permission denied"</b></summary>
+
+**原因**: 当前用户不在 `docker` 组中
+
+**解决方法**:
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+# 重新运行拉取脚本
+bash global_preparation/pull_toolathlon_image.sh
+```
+</details>
+
+<details>
+<summary><b>Q: Podman 拉取镜像时报错 "connection refused"</b></summary>
+
+**原因**: Podman socket 未启动
+
+**解决方法**:
+```bash
+# 启动用户级 socket
+systemctl --user start podman.socket
+systemctl --user enable podman.socket
+
+# 检查状态
+systemctl --user status podman.socket
+```
+</details>
+
+<details>
+<summary><b>Q: 拉取镜像速度非常慢</b></summary>
+
+**解决方法 (Docker)**:
+```bash
+# 配置国内镜像加速 (以阿里云为例)
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn"，
+    "https://hub-mirror.c.163.com"
+  ]
+}
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+# 重新拉取
+bash global_preparation/pull_toolathlon_image.sh
+```
+
+**解决方法 (Podman)**:
+```bash
+# 编辑 registries.conf
+sudo vim /etc/containers/registries.conf
+
+# 添加:
+[[registry]]
+prefix = "docker.io"
+location = "docker.mirrors.ustc.edu.cn"
+
+# 重新拉取
+bash global_preparation/pull_toolathlon_image.sh
+```
+</details>
+
+<details>
+<summary><b>Q: 可以不使用 Docker/Podman 吗?</b></summary>
+
+**可以，但不推荐**。参考 [`README_nodocker.md`](https://github.com/hkust-nlp/Toolathlon/blob/main/README_nodocker.md)，但:
+- ❌ 无法并行执行任务
+- ❌ 任务间可能相互干扰
+- ❌ 部分 Kubernetes 任务无法运行
+- ❌ 环境配置更复杂
+</details>
+
+
+## 2.6 镜像内容详解 (高级)
+
+镜像内容，可以查看 [`Dockerfile`](https://github.com/hkust-nlp/Toolathlon/blob/main/Dockerfile):
+
+| 组件 | 版本/说明 |
+|------|----------|
+| **基础镜像** | Ubuntu 22.04 |
+| **Python** | 3.12 (通过 uv 管理) |
+| **Node.js** | 22.x + npm latest |
+| **Docker CLI** | 24.0.7 (用于容器内调用宿主机 Docker) |
+| **Podman CLI** | 4.7.0 remote client |
+| **kubectl** | latest stable |
+| **kind** | v0.20.0 |
+| **Helm** | v3.14.0 |
+| **Playwright** | 包含所有浏览器依赖库 |
+| **工作目录** | `/workspace` |
+
+**容器内外通信机制**:
+- Docker: 通过挂载 `/var/run/docker.sock` 实现容器内外通信
+- Podman: 通过挂载 `/run/podman/podman.sock` 或 `/run/user/$(id -u)/podman/podman.sock`
+
+---
+
+
+# 第三步: 注册必需的账号并配置 API 凭证
+
+**这是部署中最关键的一步** Toolathlon 评估需要访问多个真实服务的 API。虽然步骤较多，但大部分可以通过自动化脚本完成。
+
+>**完成第三步后得到**：
+>- Google Cloud 完整配置 (40+ API， 服务账号， OAuth)
+>- GitHub/HuggingFace/WandB/Serper 凭证
+>- Notion 集成配置
+>- Snowflake 数据仓库配置
+>- `configs/token_key_session.py` 所有远程服务字段已填写
+>- `configs/google_credentials.json` OAuth 凭证文件
+>- `configs/gcp-service_account.keys.json` 服务账号密钥
+>- `configs/snowflake_rsa_key.p8` Snowflake 私钥
+
+## 3.1 准备配置文件
+
+```bash
+# 配置文件已在第一步自动创建，确认存在
+ls -l configs/token_key_session.py
+
+# 如果不存在，手动创建
+cp configs/token_key_session_example.py configs/token_key_session.py
+```
+
+**`token_key_session.py` 包含的凭证类型**:
+
+| 类别 | 服务 | 必需性 | 说明 |
+|------|------|--------|------|
+| **远程服务** | Google Cloud | ✅ 必需 | Maps/Gmail/Drive/Sheets/Calendar/BigQuery |
+| | GitHub | ✅ 必需 | 代码仓库操作任务 |
+| | HuggingFace | ✅ 必需 | 模型/数据集上传下载 |
+| | WandB | ✅ 必需 | 实验跟踪任务 |
+| | Serper | ✅ 必需 | Google 搜索 API |
+| | Notion | ✅ 必需 | 笔记管理任务 |
+| | Snowflake | ✅ 必需 | 数据仓库任务 |
+| **本地服务** | Canvas | 🔄 自动生成 | 学习管理系统 (在第四步部署时自动创建) |
+| | Poste (Email) | 🔄 自动生成 | SMTP/IMAP 邮件服务器 |
+| | WooCommerce | 🔄 自动生成 | 电商平台 |
+| | Kubernetes | 🔄 自动生成 | 集群配置文件 |
+
+
+## 3.2 配置 Google Cloud (核心服务) 
+
+Google Cloud 是 Toolathlon 的核心依赖，需要配置 **40+ API 服务**。
+
+### 前置准备
+
+1. **安装 gcloud CLI** (如未安装):
+
+```bash
+# 下载并安装
+curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-456.0.0-linux-x86_64.tar.gz
+tar -xf google-cloud-sdk-*-x86_64.tar.gz
+./google-cloud-sdk/install.sh
+
+# 重新加载配置
+source ~/.bashrc  # 或 ~/.zshrc
+
+# 验证安装
+gcloud --version
+```
+
+2. **准备 Google 账号**:
+   - **强烈建议**: 专门为 Toolathlon 注册一个新的 Gmail 账号
+   - 访问 [Google Cloud Console](https://console.cloud.google.com/) 接受服务条款
+
+### 运行自动化设置脚本
+
+```bash
+bash global_preparation/automated_google_setup.sh
+```
+
+**脚本完整流程**:
+
+<details>
+<summary><b>前置步骤 1: 检查前置条件</b></summary>
+
+- 验证 `gcloud` 和 `uv` 已安装
+- 登录 Google 账号 (如未登录会自动打开浏览器)
+- 选择或创建 GCP 项目
+
+**交互提示**:
+```
+What would you like to do?
+  1. Use current project (toolathlon-eval-xxx)
+  2. Select a different project from the list
+  3. Create a new project
+Enter choice [1/2/3]:
+```
+
+**建议**: 选择 `3` 创建新项目，避免与现有项目冲突。
+
+</details>
+
+<details open>
+<summary><b> 前置步骤 2: 配置账单 (关键)</b></summary>
+
+脚本会检查项目是否关联账单账户:
+
+```
+⚠️  No billing account linked to this project!
+
+💡 Don't worry: For new Google Cloud accounts， you have over $2000 USD in free credits
+   after linking a billing account. This is more than enough to evaluate the benchmark
+   100+ times， so you won't be charged in the beginning.
+
+Please open the link to link a billing account:
+  https://console.cloud.google.com/billing/linkedaccount?project=...
+```
+
+**重要说明**:
+- ✅ **新用户**: Google Cloud 提供 **$300 免费额度** (前 90 天) + **$2000+ Always Free 额度**
+- ✅ **评估成本**: 完整运行 Toolathlon 所有任务消耗 < $50 USD (在免费额度内)
+- ✅ **无需担心**: 不会自动扣费，免费额度用完后会提示
+- ⚠️ **必须绑定**: 很多 API (如 BigQuery， Maps) 要求启用账单才能使用
+
+**操作步骤**:
+1. 脚本会自动打开浏览器到账单页面
+2. 点击 "链接账单账户" (Link Billing Account)
+3. 添加付款方式 (信用卡/借记卡)
+4. 返回终端按 Enter 继续
+
+</details>
+
+<details>
+<summary><b>🔌 步骤 1: 启用 40+ Google API 服务</b></summary>
+
+脚本会自动启用以下 API 类别:
+
+| API 类别 | 具体服务 | 用途任务 |
+|---------|---------|---------|
+| **核心 Google API** | Gmail， Drive， Sheets， Calendar， Forms， YouTube | 邮件/文件/表格/日程/视频操作 |
+| **BigQuery & 分析** | BigQuery， Analytics Hub， Data Policy | 数据仓库查询和分析 |
+| **云平台服务** | Compute Engine， Cloud Storage， Cloud Logging | 虚拟机/存储/日志管理 |
+| **Maps & 地理位置** | Maps， Directions， Places， Geocoding， Elevation | 地图/导航/地点查询 |
+| **文档处理** | Docs， Slides， Drive Activity | Google 文档操作 |
+
+**执行输出示例**:
+```
+Enabling core Google APIs...
+Operation "operations/..." finished successfully.
+✓ All Google Cloud API services have been enabled
+```
+
+</details>
+
+<details>
+<summary><b>👤 步骤 2-4: 创建服务账号并生成密钥</b></summary>
+
+自动完成:
+1. 创建服务账号: `toolathlon-service-account@PROJECT_ID.iam.gserviceaccount.com`
+2. 授予 Owner 角色 (管理 BigQuery/GCS 等需要)
+3. 生成服务账号密钥: `configs/gcp-service_account.keys.json`
+4. 创建 API Key (用于 Maps/YouTube 等 API)
+
+**输出示例**:
+```
+✓ Service account created: toolathlon-service-account@...
+✓ Owner role granted to service account
+✓ Service account key created: configs/gcp-service_account.keys.json
+✓ API key created
+  API Key: AIzaSyDXXXXXXXXXXXXXXXXXXX...
+```
+
+</details>
+
+<details open>
+<summary><b>步骤 6: 配置 OAuth 认证 (需手动操作)</b></summary>
+
+**为什么需要 OAuth?**  
+服务账号只能访问 API，而 OAuth 可以让代理操作**您个人的** Gmail/Drive/Calendar (模拟真实用户行为)。
+
+脚本会**自动打开浏览器**并引导您完成 3 个手动步骤:
+
+### **步骤 6.1: 配置 OAuth 同意屏幕**
+
+```
+Opening URL in your browser...
+  https://console.cloud.google.com/apis/credentials/consent?project=...
+
+In the browser， please do the following:
+  1. Click 'get started'
+  2. Fill in the form:
+     - App name: Toolathlon Evaluation
+     - User support email: your-email@gmail.com
+     - Audience: External
+  3. Proceed to finish
+```
+
+**截图参考**: [OAuth 同意屏幕配置](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/gcp_oauth2_part2.2.png)
+
+完成后按 Enter 继续。
+
+### **步骤 6.2: 发布应用 (重要)**
+
+```
+Opening URL in your browser...
+  https://console.cloud.google.com/auth/audience?project=...
+
+In the browser， please do the following:
+  1. Click 'PUBLISH APP' button
+  2. Click 'Confirm' in the popup
+
+⚠️  Why is this important?
+   Without publishing， your OAuth tokens will expire every 7 days!
+   You'll have to re-authenticate weekly (very annoying).
+```
+
+**截图参考**: [发布应用](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/gcp_oauth2_part5_1.png)
+
+完成后按 Enter 继续。
+
+### **步骤 6.3: 创建 OAuth 客户端 ID**
+
+```
+Opening URL in your browser...
+  https://console.cloud.google.com/auth/clients/create?project=...
+
+In the browser， please do the following:
+  1. Application type: Web application
+  2. Name: Web client 1
+  3. Add authorized redirect URIs: http://localhost:3000/oauth2callback
+  4. Click 'CREATE'
+  5. Click 'DOWNLOAD JSON'
+  6. Rename and Save the file to: /path/to/Toolathlon/configs/gcp-oauth.keys.json
+```
+
+**截图参考**:
+- [创建客户端 ID](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/gcp_oauth2_part3.png)
+- [下载 JSON](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/gcp_oauth2_part4.png)
+
+**⚠️ 注意**: 必须将下载的文件重命名为 `gcp-oauth.keys.json` 并放到 `configs/` 目录
+
+完成后按 Enter，脚本会自动运行 OAuth 授权流程:
+
+```
+Running OAuth flow (browser will open for authentication)...
+```
+
+浏览器会打开要求:
+1. 选择 Google 账号
+2. 点击"继续"授权访问 Gmail/Drive/Calendar
+3. 授权成功后会显示 "Authorization successful! You can close this window."
+
+脚本会自动生成 `configs/google_credentials.json`。
+
+</details>
+
+<details>
+<summary><b>步骤 7: 自动更新配置文件</b></summary>
+
+脚本会自动将所有凭证填入 `configs/token_key_session.py`:
+
+```python
+google_cloud_console_api_key = "AIzaSy..."  # ✓ 已填写
+gcp_project_id = "toolathlon-eval-xxx"       # ✓ 已填写
+gcp_service_account_path = "configs/gcp-service_account.keys.json"  # ✓ 已填写
+google_client_id = "xxx.apps.googleusercontent.com"  # ✓ 已填写
+google_client_secret = "GOCSPX-xxx"         # ✓ 已填写
+google_refresh_token = "1//xxx"             # ✓ 已填写
+```
+
+</details>
+
+>**Google Cloud 配置完成后将得到**:
+>-  启用了 40+ API 的 GCP 项目
+>-  服务账号及密钥 (用于 API 调用)
+>-  API Key (用于 Maps/YouTube)
+>-  OAuth 凭证 (用于用户级操作)
+>-  `configs/token_key_session.py` 自动更新
+
+
+## 3.3 配置 GitHub/HuggingFace/WandB/Serper
+
+这 4 个服务可以通过一个脚本全部配置:
+
+```bash
+bash global_preparation/automated_additional_services.sh
+```
+
+**脚本完整流程 (预计 10 分钟)**:
+
+<details open>
+<summary><b>步骤 1: GitHub Personal Access Token</b></summary>
+
+### 注册 GitHub 账号
+
+脚本会打开:
+```
+https://github.com/signup
+```
+
+**建议**: 使用您的 Toolathlon 专用 Gmail 账号注册 (可选择 "Continue with Google")
+
+完成后按 Enter。
+
+### 创建 Personal Access Token
+
+脚本会打开:
+```
+https://github.com/settings/tokens/new?description=Toolathlon+Evaluation&scopes=repo，delete_repo，workflow，admin:org，user
+```
+
+**Token 权限** (已自动填入 URL):
+- ✅ `repo` - 完整的仓库访问权限
+- ✅ `delete_repo` - 删除仓库 (某些清理任务需要)
+- ✅ `workflow` - 管理 GitHub Actions
+- ✅ `admin:org` - 组织管理
+- ✅ `user` - 用户信息读取
+
+**操作步骤**:
+1. 设置 Expiration: 选择 "90 days" 或 "No expiration"
+2. 点击 "Generate token"
+3. **立即复制 Token** (只显示一次!)
+
+粘贴到终端:
+```
+Please paste your GitHub personal access token:
+ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+</details>
+
+<details>
+<summary><b>步骤 2: HuggingFace Token</b></summary>
+
+### 注册 HuggingFace 账号
+
+脚本会打开:
+```
+https://huggingface.co/join
+```
+
+使用 Toolathlon 专用 Gmail 注册。
+
+### 创建 Write Token
+
+脚本会打开:
+```
+https://huggingface.co/settings/tokens/new?tokenType=write
+```
+
+**操作步骤**:
+1. Name: `Toolathlon Evaluation`
+2. Type: `Write` (已预选)
+3. 点击 "Create token"
+4. 复制 Token
+
+粘贴到终端:
+```
+Please paste your HuggingFace token:
+hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+</details>
+
+<details>
+<summary><b>📊 步骤 3: WandB API Key</b></summary>
+
+### 注册 WandB 账号
+
+脚本会打开:
+```
+https://wandb.ai/signup
+```
+
+建议选择 "Continue with Google"。
+
+### 获取 API Key
+
+脚本会打开:
+```
+https://wandb.ai/authorize
+```
+
+直接复制页面上显示的 API Key。
+
+粘贴到终端:
+```
+Please paste your WandB API key:
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+</details>
+
+<details>
+<summary><b>🔍 步骤 4: Serper API Key</b></summary>
+
+### 注册 Serper 账号
+
+脚本会打开:
+```
+https://serper.dev/signup
+```
+
+**关于费用**:
+- ✅ 新用户有 **免费额度** (2500 次搜索)
+- ✅ 完整运行 Toolathlon 约消耗 **< $1 USD**
+- ✅ 可以使用现有账号
+
+### 获取 API Key
+
+脚本会打开:
+```
+https://serper.dev/api-keys
+```
+
+复制 API Key。
+
+粘贴到终端:
+```
+Please paste your Serper API key:
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+</details>
+
+<details>
+<summary><b>📝 步骤 5: 自动更新配置文件</b></summary>
+
+脚本会自动更新 `configs/token_key_session.py`:
+
+```python
+github_token = "ghp_xxx"         # ✓ 已填写
+huggingface_token = "hf_xxx"     # ✓ 已填写
+wandb_api_key = "xxx"            # ✓ 已填写
+serper_api_key = "xxx"           # ✓ 已填写
+```
+
+</details>
+
+**✅ 完成后输出**:
+```
+================================================================
+       Github/Huggingface/Wandb/Serper Services Setup Complete! 
+================================================================
+
+Services configured:
+  ✓ GitHub token
+  ✓ HuggingFace token
+  ✓ WandB API key
+  ✓ Serper API key
+```
+
+## 3.4 配置 Notion
+
+Notion 需要特殊配置，用于笔记管理任务。
+
+### 步骤 1: 注册 Notion 账号并创建 Workspace
+
+使用您的 Toolathlon 专用 Gmail 注册: https://www.notion.so/signup
+
+创建一个新的 Workspace (或使用现有的)。
+
+### 步骤 2: 连接 Notion MCP 服务器
+
+```bash
+uv run -m global_preparation.special_setup_notion_official
+```
+
+**脚本会**:
+1. 启动 Notion MCP 服务器
+2. 提示您在浏览器中登录 Notion 并授权
+3. 将授权信息保存到 `configs/.mcp-auth/`
+
+**输出示例**:
+```
+MCP authentication will be stored in: /path/to/configs/.mcp-auth
+We need to configure this notion official mcp server...
+Please follow the login guidances to do so ...
+>>>> DONE!
+```
+
+**⚠️ 注意**: 如果连接到错误的 Workspace，可以删除 `configs/.mcp-auth` 并重新运行。
+
+### 步骤 3: 复制 Source Page
+
+访问官方模板页面:
+```
+https://amazing-wave-b38.notion.site/Notion-Source-Page-27ad10a48436805b9179fdaff2f65be2
+```
+
+操作:
+1. 点击页面右上角的 "Duplicate" (复制)
+2. 选择您的 Workspace
+3. 复制完成后，**记录新页面的 URL**
+
+**示例 URL**:
+```
+https://www.notion.so/your-workspace/Notion-Source-Page-xxx
+```
+
+### 步骤 4: 创建 Eval Page
+
+在 Notion Workspace 根目录创建一个新页面:
+1. 页面标题: `Notion Eval Page`
+2. **记录页面 URL**
+
+### 步骤 5: 创建 Integration (集成)
+
+访问: https://www.notion.so/profile/integrations
+
+**创建第一个 Integration (用于 Source Page)**:
+1. 点击 "+ New integration"
+2. Name: `Toolathlon Source Integration`
+3. Associated workspace: 选择您的 Workspace
+4. Capabilities: 勾选所有权限 (Read/Update/Insert)
+5. 点击 "Submit"
+6. **复制 "Internal Integration Secret"** (以 `secret_` 开头)
+
+**创建第二个 Integration (用于 Eval Page)**:
+1. 重复上述步骤
+2. Name: `Toolathlon Eval Integration`
+3. **只给 "Notion Eval Page" 授权**
+4. **复制第二个 "Internal Integration Secret"**
+
+**截图参考**:
+- [创建 Integration](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/notion_part1.png)
+- [复制 Secret](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/notion_part2.png)
+- [连接页面](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/notion_part3.png)
+
+### 步骤 6: 手动更新配置文件
+
+编辑 `configs/token_key_session.py`:
+
+```python
+notion_integration_key = "secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # 第一个 Integration
+notion_integration_key_eval = "secret_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"  # 第二个 Integration
+source_notion_page_url = "https://www.notion.so/your-workspace/Notion-Source-Page-xxx"  # 复制的 Source Page URL
+eval_notion_page_url = "https://www.notion.so/your-workspace/Notion-Eval-Page-yyy"  # 创建的 Eval Page URL
+```
+
+## 3.5 配置 Snowflake (数据仓库)
+
+Snowflake 用于数据仓库相关任务。
+
+### 步骤 1: 注册 Snowflake 账号
+
+访问: https://signup.snowflake.com/
+
+**建议**: 选择 30-day free trial (无需信用卡)
+
+填写信息时:
+- **Cloud Provider**: 选择 AWS/Azure/GCP (任意)
+- **Region**: 选择离您最近的区域
+- **Edition**: 选择 Standard (免费试用已足够)
+
+### 步骤 2: 记录账号信息
+
+登录后，获取以下信息:
+
+1. **Account Identifier** (账号 ID):
+   - 位置: 页面左下角，格式如 `XXXXXXX.us-east-1` 或 `XXXXXXX-YYYYYYY`
+   - **截图参考**: [Account ID](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/snowflake_part1.png)
+
+2. **User Name** (登录名):
+   - 位置: 右上角头像 → Account
+   - **截图参考**: [User Name](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/snowflake_part2.png)
+   - 现在显示为 "Login name"
+
+### 步骤 3: 生成 RSA 密钥对
+
+```bash
+# 生成私钥
+openssl genrsa 2048 | openssl pkcs8 -topk8 -v2 des3 -inform PEM -out ./configs/snowflake_rsa_key.p8 -nocrypt
+
+# 生成公钥
+openssl rsa -in ./configs/snowflake_rsa_key.p8 -pubout -out ./configs/snowflake_rsa_key.pub
+
+# 显示公钥 (用于下一步)
+cat ./configs/snowflake_rsa_key.pub | grep -v "BEGIN PUBLIC KEY" | grep -v "END PUBLIC KEY" | tr -d '\n'; echo
+```
+
+**输出示例**:
+```
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...（一长串字符）
+```
+
+**复制这串字符** (不含空格和换行)。
+
+### 步骤 4: 在 Snowflake 控制台配置公钥
+
+1. 登录 Snowflake Web UI
+2. 点击左侧 "Projects" → "Worksheets" → "+ Worksheet" (创建新 SQL 文件)
+   - **截图参考**: [创建 Worksheet](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/snowflake_part3.png)
+
+3. 在 SQL 编辑器中输入 (替换 `YOUR_USERNAME` 为您的登录名):
+
+```sql
+ALTER USER YOUR_USERNAME SET RSA_PUBLIC_KEY='MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...';
+```
+
+4. 点击右上角 "Run" (运行)
+   - **截图参考**: [配置公钥](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/snowflake_part4.png)
+
+5. 验证配置 (运行以下 SQL):
+
+```sql
+DESC USER YOUR_USERNAME;
+```
+
+在结果中查找 `RSA_PUBLIC_KEY` 和 `RSA_PUBLIC_KEY_FP` 字段，应该都有值。
+   - **截图参考**: [验证公钥](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/figures/snowflake_part5.png)
+
+### 步骤 5: 更新配置文件
+
+编辑 `configs/token_key_session.py`:
+
+```python
+snowflake_account = "XXXXXXX.us-east-1"  # 您的 Account Identifier (完整格式)
+snowflake_user = "YOUR_USERNAME"         # 您的登录名
+snowflake_warehouse = "COMPUTE_WH"       # 默认仓库 (通常不需要改)
+snowflake_role = "ACCOUNTADMIN"          # 默认角色
+snowflake_database = "SNOWFLAKE"         # 默认数据库
+snowflake_schema = "PUBLIC"              # 默认 schema
+# snowflake_private_key_path 会自动从 configs/snowflake_rsa_key.p8 读取
+```
+
+## 3.6 验证配置完整性
+
+所有配置完成后，检查 `configs/token_key_session.py`:
+
+```bash
+# 检查所有必填字段是否已配置 (不应该包含 "XX")
+grep "= \"XX\"" configs/token_key_session.py
+
+# 如果没有输出，说明所有远程服务已配置
+# 如果有输出，检查哪些字段还是 "XX" 并补充
+```
+
+**预期配置清单**:
+
+```python
+# ✅ Serper
+serper_api_key = "xxxxxx"  # ✓
+
+# ✅ Google Cloud
+google_cloud_console_api_key = "AIzaSyXXX"  # ✓
+gcp_project_id = "toolathlon-eval-xxx"  # ✓
+gcp_service_account_path = "configs/gcp-service_account.keys.json"  # ✓
+google_client_id = "xxx.apps.googleusercontent.com"  # ✓
+google_client_secret = "GOCSPX-xxx"  # ✓
+google_refresh_token = "1//xxx"  # ✓
+
+# ✅ GitHub
+github_token = "ghp_xxx"  # ✓
+
+# ✅ HuggingFace
+huggingface_token = "hf_xxx"  # ✓
+
+# ✅ WandB
+wandb_api_key = "xxxxxx"  # ✓
+
+# ✅ Notion
+notion_integration_key = "secret_xxx"  # ✓
+notion_integration_key_eval = "secret_yyy"  # ✓
+source_notion_page_url = "https://www.notion.so/..."  # ✓
+eval_notion_page_url = "https://www.notion.so/..."  # ✓
+
+# ✅ Snowflake
+snowflake_account = "xxx.region"  # ✓
+snowflake_user = "YOUR_USERNAME"  # ✓
+snowflake_warehouse = "COMPUTE_WH"  # ✓
+snowflake_role = "ACCOUNTADMIN"  # ✓
+snowflake_database = "SNOWFLAKE"  # ✓
+snowflake_schema = "PUBLIC"  # ✓
+snowflake_private_key_path = "configs/snowflake_rsa_key.p8"  # ✓ (自动)
+```
+
+**本地服务配置** (第四步自动生成，保持默认即可):
+```python
+# 🔄 Canvas (自动)
+canvas_api_token = "canvas_token_victoria_14z"
+canvas_domain = "localhost:20001"
+
+# 🔄 WooCommerce (自动)
+woocommerce_api_key = "ck_woocommerce_token_PE0613bf053"
+woocommerce_api_secret = "cs_woocommerce_token_PE0613bf053"
+woocommerce_site_url = "http://localhost:10003/store100"
+
+# 🔄 Kubernetes (自动)
+kubeconfig_path = "deployment/k8s/configs/cluster1-config.yaml"
+
+# 🔄 Poste Email (自动)
+emails_config_file = "configs/example_email_config.json"
+```
+
+## 常见问题
+
+<details>
+<summary><b>Q: 自动化脚本失败，如何手动配置?</b></summary>
+
+请参考详细的注册指南: [`global_preparation/how2register_accounts.md`](https://github.com/hkust-nlp/Toolathlon/blob/main/global_preparation/how2register_accounts.md)
+
+所有步骤都有截图说明。
+</details>
+
+<details>
+<summary><b>Q: Google Cloud 账单需要多少费用?</b></summary>
+
+- **新用户**: $300 免费额度 (90 天) + Always Free 层级
+- **评估成本**: 完整运行 < $50 USD (在免费额度内)
+- **建议**: 设置预算提醒 (Cloud Console → Billing → Budgets)
+</details>
+
+<details>
+<summary><b>Q: OAuth 凭证过期了怎么办?</b></summary>
+
+如果您**没有发布应用** (步骤 6.2)，Token 会在 7 天后过期。
+
+**解决方法**:
+```bash
+# 重新运行 OAuth 流程
+uv run global_preparation/simple_google_auth.py
+```
+
+**永久解决**: 确保在 GCP Console 中发布了应用。
+</details>
+
+<details>
+<summary><b>Q: Notion Integration 找不到我的页面?</b></summary>
+
+**原因**: Integration 没有连接到该页面。
+
+**解决方法**:
+1. 打开 Notion 页面
+2. 点击右上角 "..." → "Connections"
+3. 搜索并选择您的 Integration
+4. 点击 "Confirm"
+</details>
+
+<details>
+<summary><b>Q: Snowflake 公钥配置失败?</b></summary>
+
+**常见错误**:
+- 公钥包含了 `BEGIN/END PUBLIC KEY` 行 → 使用提供的命令过滤
+- 公钥包含换行符 → 确保复制的是一整行字符串
+- 用户名错误 → 使用 "Login name" 而不是 "User name"
+
+**验证方法**:
+```sql
+DESC USER YOUR_USERNAME;
+```
+检查 `RSA_PUBLIC_KEY` 和 `RSA_PUBLIC_KEY_FP` 是否有值。
+</details>
+
+
+---
+
+# 第四步: 部署本地服务
+
+Toolathlon 需要多个本地运行的服务来模拟真实的应用环境，包括邮件服务器、学习管理系统、电商平台和 Kubernetes 集群。这些服务都会在容器中运行，并使用非特权端口(避免需要 root 权限)。
+
+>**完成第四步后得到**：
+>- **Canvas LMS** 运行在 http://localhost:10001 (503 用户账号)
+>- **Poste 邮件服务器** 运行在 http://localhost:10005 (503 邮箱账号)
+>- **WooCommerce 电商平台** 运行在 http://localhost:10003 (20 个子站点，用户 #81-#100)
+>- **Kubernetes 集群** `cluster1` (可通过 kubeconfig 访问)
+>- **503 个虚拟用户账号** (包含 Canvas token， 邮箱密码， WooCommerce API 密钥)
+>- **所有服务的 API 凭证** 已保存在 `deployment/*/configs/` 目录
+
+## 4.1 部署前准备
+
+**端口清单** (脚本会自动检查并清理占用的端口):
+
+| 服务 | 端口 | 用途 |
+|------|------|------|
+| **Canvas HTTP** | 10001 | Canvas LMS Web 界面 |
+| **Canvas HTTPS** | 20001 | Canvas LMS HTTPS 代理 |
+| **Poste Web** | 10005 | Poste.io 邮件服务器 Web 管理界面 |
+| **SMTP** | 2525 | 邮件发送 (SMTP) |
+| **IMAP** | 1143 | 邮件接收 (IMAP) |
+| **Submission** | 1587 | SMTP 提交端口 |
+| **WooCommerce** | 10003 | WordPress + WooCommerce 电商平台 |
+| **K8s NodePort** | 30123， 30124， 30137 | Kubernetes 任务使用的 NodePort |
+
+## 4.2 运行部署脚本
+
+```bash
+# 一键部署所有本地服务
+bash global_preparation/deploy_containers.sh true
+```
+
+**参数说明**:
+- `true` - 配置 Dovecot 允许明文认证 (推荐 Ubuntu 24.04)
+- `false` - 不配置 Dovecot (推荐 AlmaLinux)
+
+**⚠️ 如何选择参数?**
+- **Ubuntu 20.04/22.04/24.04**: 使用 `true`
+- **CentOS/RHEL/AlmaLinux**: 使用 `false`
+- **不确定**: 使用 `true` (更通用)
+
+
+## 4.3 部署流程详解
+
+脚本会按以下顺序执行(预计 15-25 分钟):
+
+<details open>
+<summary><b>📋 阶段 1: 端口检查和清理</b></summary>
+
+脚本会检查并杀死占用必需端口的进程:
+
+```
+Checking and killing processes on required ports...
+Port 10001 is free
+Port 20001 is free
+Port 10005 is in use. Killing process(es)...
+  Killing PID 12345 on port 10005
+  Port 10005 cleared
+...
+All required ports checked and cleared
+```
+
+**如果看到端口被占用**: 这是正常的，脚本会自动清理。
+
+</details>
+
+<details open>
+<summary><b>阶段 2: 部署 Kubernetes 测试集群</b></summary>
+
+执行: `bash deployment/k8s/scripts/setup.sh`
+
+**脚本会**:
+1. 清理所有现有的 Kind 集群
+2. 创建一个测试集群 `cluster1`
+3. 生成 kubeconfig 文件: `deployment/k8s/configs/cluster1-config.yaml`
+
+**输出示例**:
+```
+========== Start stopping operation ==========
+Deleting cluster: cluster1
+✓ Cluster cluster1 deleted
+Configuration files have been cleaned up
+========== Stopping operation completed ==========
+
+========== Start setup operation ==========
+Creating cluster: cluster1
+✓ Cluster cluster1 created successfully
+✓ Cluster cluster1 is running normally
+Node information:
+NAME                     STATUS   ROLES           AGE   VERSION
+cluster1-control-plane   Ready    control-plane   30s   v1.27.3
+All system pods are ready
+========== Setup operation completed ==========
+```
+
+**验证**:
+```bash
+# 使用生成的 kubeconfig 访问集群
+kubectl --kubeconfig=deployment/k8s/configs/cluster1-config.yaml get nodes
+```
+
+</details>
+
+<details open>
+<summary><b>阶段 3: 部署 Canvas LMS (学习管理系统)</b></summary>
+
+执行: `bash deployment/canvas/scripts/setup.sh`
+
+**部署步骤**:
+
+### 3.1 启动 Canvas Docker 容器
+```
+Starting Canvas Docker container (port: 10001)...
+Canvas Docker container started successfully
+```
+
+使用镜像: `lbjay/canvas-docker` (预装了 Canvas LMS)
+
+### 3.2 配置域名
+```
+Configuring Canvas domain to use port 10001...
+Restarting Canvas services to apply domain configuration...
+```
+
+修改容器内的 `/opt/canvas/canvas-lms/config/domain.yml`，将域名设为 `localhost:10001`。
+
+### 3.3 启动 HTTPS 代理
+```
+Starting HTTPS proxy (port: 20001)...
+HTTPS proxy started successfully (PID: 67890)
+
+Canvas service startup completed!
+HTTP access: http://localhost:10001
+HTTPS access: https://localhost:20001
+```
+
+使用 Node.js 代理 (`deployment/utils/build_proxy.mjs`) 提供 HTTPS 访问。
+
+### 3.4 创建 503 个用户账号
+```
+Start creating users ...
+Creating 503 Canvas users in batches of 100...
+Batch 1/6: Creating users 1-100... ✓
+Batch 2/6: Creating users 101-200... ✓
+...
+✓ All 503 users created successfully
+```
+
+从 `configs/users_data.json` 读取用户信息，创建账号。
+
+**用户账号示例**:
+| ID | 姓名 | 邮箱 | Canvas Token |
+|----|------|------|--------------|
+| 1 | Ronald Kelly | rkelly27@mcp.com | canvas_token_ronald_81q2O |
+| 2 | Donald Richardson | drichardson@mcp.com | canvas_token_DR0602@NJBmV |
+| 14 | Victoria Lee | leev2@mcp.com | canvas_token_lee@v980FhDD |
+
+### 3.5 创建管理员账号
+```
+Start creating admin accounts ...
+✓ Admin accounts created
+```
+
+**验证 Canvas 部署**:
+```bash
+# 访问 Canvas Web 界面
+curl -s http://localhost:10001 | grep -i canvas
+
+# 检查代理日志
+tail -f deployment/canvas/logs/proxy.log
+```
+
+</details>
+
+<details open>
+<summary><b>📧 阶段 4: 部署 Poste.io (邮件服务器)</b></summary>
+
+执行: `bash deployment/poste/scripts/setup.sh start true`
+
+**部署步骤**:
+
+### 4.1 启动 Poste.io 容器
+```
+🚀 Starting Poste.io...
+✅ Poste.io started successfully!
+📧 Web interface: http://localhost:10005
+```
+
+使用镜像: `analogic/poste.io:2.5.5`
+
+**容器配置**:
+- 主机名: `mcp.com`
+- 禁用组件: ClamAV (病毒扫描)， Rspamd (垃圾邮件过滤)， p0f (被动指纹识别)
+- 端口映射:
+  - `10005:80` - Web 管理界面
+  - `2525:25` - SMTP
+  - `1143:143` - IMAP
+  - `1587:587` - SMTP Submission
+
+### 4.2 配置明文认证 (如果参数为 true)
+```
+🔧 Configuring mail services to allow plaintext authentication...
+🔧 Configuring Dovecot...
+🔧 Configuring Haraka SMTP...
+🔧 Configuring Haraka Submission (port 587)...
+🔧 Configuring relay ACL...
+🔍 Verifying Dovecot configuration...
+✅ Dovecot configuration is valid
+🔄 Reloading mail service configurations...
+✅ Mail services configured to allow plaintext authentication
+```
+
+**为什么需要明文认证?**  
+某些 MCP 客户端(如 Python `imaplib`)默认使用明文认证。配置 Dovecot 允许这种方式可以确保兼容性。
+
+**修改的配置**:
+- Dovecot: `ssl = required` → `ssl = yes`
+- Dovecot: `disable_plaintext_auth = yes` → `auth_allow_cleartext = yes`
+- Haraka: `tls_required = true` → `tls_required = false`
+- Relay ACL: 允许本地网络 (127.0.0.1， 192.168.0.0/16， 172.16.0.0/12， 10.0.0.0/8)
+
+### 4.3 创建 503 个邮件账号
+```
+📝 Creating domain: mcp.com
+✅ Domain already exists: mcp.com
+
+📄 Initializing accounts file: deployment/poste/configs/accounts.json
+👑 Creating admin account...
+📧 Creating: mcpposte_admin@mcp.com
+✅ Admin created successfully!
+   Email: mcpposte_admin@mcp.com
+   Password: mcpposte
+
+👥 Creating 503 regular users from JSON data...
+Progress: [████████████████████████████████] 503/503 (100%)
+✅ All users created successfully!
+```
+
+**管理员账号**:
+- 邮箱: `mcpposte_admin@mcp.com`
+- 密码: `mcpposte`
+
+**普通用户账号** (示例):
+| 邮箱 | 密码 |
+|------|------|
+| rkelly27@mcp.com | ronald_81q2O |
+| drichardson@mcp.com | DR0602@NJBmV |
+| leev2@mcp.com | lee@v980FhDD |
+
+所有账号信息保存在: `deployment/poste/configs/accounts.json`
+
+**验证 Poste 部署**:
+```bash
+# 访问 Web 管理界面
+curl -s http://localhost:10005/admin
+
+# 测试 SMTP (发送邮件)
+echo "Subject: Test
+
+This is a test email." | nc localhost 2525
+
+# 测试 IMAP (接收邮件)
+openssl s_client -connect localhost:1143 -starttls imap -quiet
+```
+
+</details>
+
+<details open>
+<summary><b>阶段 5: 部署 WooCommerce (电商平台)</b></summary>
+
+执行: `bash deployment/woocommerce/scripts/setup.sh start 81 20`
+
+**参数说明**:
+- `start` - 启动服务
+- `81` - 从用户 #81 开始
+- `20` - 创建 20 个子站点 (用户 #81-#100)
+
+**部署步骤**:
+
+### 5.1 创建 Pod/Network
+```
+Creating new pod/network...
+```
+
+- **Podman**: 创建 Pod `woo-pod`
+- **Docker**: 创建 Network `woo-net`
+
+### 5.2 启动 MySQL 数据库
+```
+Starting MySQL...
+Waiting for MySQL to start...
+MySQL is ready
+```
+
+使用镜像: `mysql:8.0`
+
+**数据库配置**:
+- Root 密码: `rootpass123`
+- 数据库名: `wordpress`
+- 用户: `wordpress`
+- 密码: `wppass123`
+
+### 5.3 启动 WordPress
+```
+Starting WordPress...
+Waiting for WordPress to start...
+WordPress is ready
+```
+
+使用镜像: `wordpress:6.8.2-php8.2-apache`
+
+### 5.4 安装 WP-CLI 并配置 WordPress
+```
+Installing WP-CLI...
+Configuring WordPress...
+Success: WordPress installed successfully.
+
+Installing WooCommerce...
+Success: Plugin installed successfully.
+Success: Plugin 'woocommerce' activated.
+
+Configuring permalinks...
+Success: Rewrite structure set.
+
+Configuring HTTP authentication support...
+```
+
+**WordPress 配置**:
+- URL: `http://localhost:10003`
+- 标题: `My WooCommerce Store`
+- 管理员用户: `mcpwoocommerce`
+- 管理员密码: `mcpwoocommerce`
+- 管理员邮箱: `woocommerce@mcp.com`
+
+### 5.5 生成管理员 API 密钥
+```
+Generating WooCommerce REST API keys...
+```
+
+**管理员 API 凭证**:
+```json
+{
+  "consumer_key": "ck_woocommerce_token_admin"，
+  "consumer_secret": "cs_woocommerce_token_admin"
+}
+```
+
+保存在: `deployment/woocommerce/configs/wc-api-credentials.json`
+
+### 5.6 转换为多站点网络
+```
+Starting to convert to multisite...
+Success: Network installed.
+```
+
+WordPress 多站点配置为**子文件夹模式** (subfolder)，URL 格式: `http://localhost:10003/store{id}/`
+
+### 5.7 创建 20 个子站点
+```
+Creating 20 WooCommerce subsites using real user data...
+
+Creating site: store81 (Emma Myers's Store)
+  ✓ Site created successfully
+  Using predefined API keys...
+  ✓ API keys configured
+  ✓ Added to configuration file
+
+Creating site: store82 (Victoria Garcia's Store)
+  ✓ Site created successfully
+  ...
+
+Batch creation completed!
+Created 20 subsites with WooCommerce API keys
+User range: 81 to 100
+```
+
+**子站点列表** (示例):
+| 站点 | 所有者 | URL | API Key | API Secret |
+|------|--------|-----|---------|-----------|
+| store81 | Emma Myers | http://localhost:10003/store81/ | ck_woocommerce_token_emma_206rnIn | cs_woocommerce_token_emma_206rnIn |
+| store82 | Victoria Garcia | http://localhost:10003/store82/ | ck_woocommerce_token_Vgarcia128jr | cs_woocommerce_token_Vgarcia128jr |
+
+所有子站点配置保存在: `deployment/woocommerce/configs/multisite-api-keys.json`
+
+**验证 WooCommerce 部署**:
+```bash
+# 访问主站
+curl -s http://localhost:10003 | grep -i woocommerce
+
+# 测试管理员 API
+CONSUMER_KEY="ck_woocommerce_token_admin"
+CONSUMER_SECRET="cs_woocommerce_token_admin"
+curl -u "$CONSUMER_KEY:$CONSUMER_SECRET" \
+  "http://localhost:10003/wp-json/wc/v3/products"
+
+# 测试子站点 API (store81)
+CONSUMER_KEY="ck_woocommerce_token_emma_206rnIn"
+CONSUMER_SECRET="cs_woocommerce_token_emma_206rnIn"
+curl -u "$CONSUMER_KEY:$CONSUMER_SECRET" \
+  "http://localhost:10003/store81/wp-json/wc/v3/products"
+```
+
+</details>
+
+
+## 4.4 部署完成后的验证
+
+### 验证所有容器是否运行
+
+```bash
+# Docker
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Podman
+podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+**预期输出**:
+```
+NAMES                       STATUS          PORTS
+canvas-docker               Up 10 minutes   0.0.0.0:10001->3000/tcp
+poste                       Up 8 minutes    0.0.0.0:10005->80/tcp， 0.0.0.0:2525->25/tcp， ...
+woo-db                      Up 5 minutes    (在 Pod/Network 中)
+woo-wp                      Up 5 minutes    0.0.0.0:10003->80/tcp
+```
+
+**如果 Docker/Podman 分别运行 Canvas 和 WooCommerce**: 您可能看到 6+ 个容器(Canvas， Poste， WooCommerce MySQL， WooCommerce WordPress 等)。
+
+### 验证各服务可访问性
+
+```bash
+# Canvas LMS
+curl -s http://localhost:10001 | grep -i canvas
+curl -sk https://localhost:20001 | grep -i canvas
+
+# Poste 邮件服务器
+curl -s http://localhost:10005 | grep -i poste
+
+# WooCommerce
+curl -s http://localhost:10003 | grep -i woocommerce
+```
+
+### 检查 Kubernetes 集群
+
+```bash
+# 列出所有 Kind 集群
+kind get clusters
+# 应输出: cluster1
+
+# 检查集群状态
+kubectl --kubeconfig=deployment/k8s/configs/cluster1-config.yaml cluster-info
+kubectl --kubeconfig=deployment/k8s/configs/cluster1-config.yaml get nodes
+```
+
+
+## 4.5 查看部署的账号和凭证
+
+### Canvas 用户账号
+
+```bash
+# 查看所有用户数据 (包含 Canvas token)
+cat configs/users_data.json | jq '.users[] | {id， full_name， email， canvas_token}' | head -20
+```
+
+### Poste 邮件账号
+
+```bash
+# 查看所有邮件账号
+cat deployment/poste/configs/accounts.json | jq '.regular_accounts[] | {email， password}' | head -10
+
+# 管理员账号
+cat deployment/poste/configs/accounts.json | jq '.admin_account'
+```
+
+### WooCommerce 子站点
+
+```bash
+# 查看所有子站点及其 API 凭证
+cat deployment/woocommerce/configs/multisite-api-keys.json | jq '.[] | {site_slug， owner_name， api_base_url， consumer_key}' | head -5
+```
+
+
+## 4.6 部署时间估算
+
+| 阶段 | 服务 | 预计时间 | 说明 |
+|------|------|---------|------|
+| 1 | 端口清理 | 10-30 秒 | 取决于占用端口数量 |
+| 2 | Kubernetes 集群 | 1-2 分钟 | Kind 集群创建 |
+| 3 | Canvas LMS | 3-5 分钟 | 容器启动 + 创建 503 用户 |
+| 4 | Poste 邮件服务器 | 5-8 分钟 | 容器启动 + 配置 + 创建 503 邮箱 |
+| 5 | WooCommerce | 5-10 分钟 | MySQL + WordPress + 20 子站点 |
+| **总计** | | **15-25 分钟** | 首次部署 |
+
+**影响因素**:
+- 网络速度 (拉取 Docker 镜像)
+- 系统性能 (CPU/内存)
+- 容器引擎 (Docker 通常比 Podman 快 10-15%)
+
+
+## 常见问题
+
+<details>
+<summary><b>Q: 脚本报错 "Address already in use"</b></summary>
+
+**原因**: 端口被其他程序占用，脚本未能成功杀死进程。
+
+**解决方法**:
+```bash
+# 手动查看并杀死占用端口的进程
+sudo lsof -i :10001
+sudo kill -9 <PID>
+
+# 或使用 fuser
+sudo fuser -k 10001/tcp
+
+# 重新运行部署脚本
+bash global_preparation/deploy_containers.sh true
+```
+</details>
+
+<details>
+<summary><b>Q: Canvas 用户创建失败</b></summary>
+
+**原因**: Canvas 容器未完全启动，或数据库未就绪。
+
+**解决方法**:
+```bash
+# 检查 Canvas 容器日志
+docker logs canvas-docker
+
+# 手动重启 Canvas
+bash deployment/canvas/scripts/setup.sh restart
+
+# 如果仍失败，清理并重新部署
+bash deployment/canvas/scripts/setup.sh stop
+bash deployment/canvas/scripts/setup.sh start
+```
+</details>
+
+<details>
+<summary><b>Q: Poste 邮件发送/接收失败</b></summary>
+
+**原因**: Dovecot 未配置明文认证，或防火墙阻止连接。
+
+**解决方法**:
+```bash
+# 重新配置 Dovecot
+bash deployment/poste/scripts/setup.sh config
+
+# 检查 Poste 容器日志
+docker logs poste
+
+# 测试 SMTP 连接
+telnet localhost 2525
+
+# 测试 IMAP 连接
+telnet localhost 1143
+```
+</details>
+
+<details>
+<summary><b>Q: WooCommerce API 返回 401 Unauthorized</b></summary>
+
+**原因**: HTTP Basic Auth 未正确配置，或 API 密钥错误。
+
+**解决方法**:
+```bash
+# 检查 .htaccess 是否包含 Authorization 头配置
+docker exec woo-wp cat /var/www/html/.htaccess | grep Authorization
+
+# 如果没有，手动添加
+docker exec woo-wp bash -c 'echo "SetEnvIf Authorization (.+) HTTPS=on" >> /var/www/html/.htaccess'
+
+# 重启 Apache
+docker exec woo-wp service apache2 restart
+
+# 重新生成 API 密钥
+bash deployment/woocommerce/scripts/setup.sh restart 81 20
+```
+</details>
+
+<details>
+<summary><b>Q: Kubernetes 集群创建失败</b></summary>
+
+**原因**: Kind 未安装，或 Docker/Podman socket 不可访问。
+
+**解决方法**:
+```bash
+# 检查 Kind 是否安装
+kind version
+
+# 检查 Docker/Podman 是否运行
+docker ps  # 或 podman ps
+
+# 如果使用 Podman，检查 socket 是否启动
+systemctl --user status podman.socket
+
+# 手动创建集群
+kind create cluster --name cluster1
+
+# 验证
+kubectl --kubeconfig=deployment/k8s/configs/cluster1-config.yaml get nodes
+```
+</details>
+
+<details>
+<summary><b>Q: 部署脚本运行很慢</b></summary>
+
+**原因**: 首次拉取 Docker 镜像，或系统资源不足。
+
+**加速方法**:
+```bash
+# 1. 提前拉取镜像
+docker pull lbjay/canvas-docker
+docker pull analogic/poste.io:2.5.5
+docker pull mysql:8.0
+docker pull wordpress:6.8.2-php8.2-apache
+
+# 2. 配置 Docker 镜像加速 (见第二步)
+
+# 3. 增加 Docker 资源限制 (如在 Docker Desktop)
+# Settings → Resources → 增加 CPU 和内存
+```
+</details>
+
+
+## 4.7 停止和清理服务
+
+### 停止所有服务
+
+```bash
+# Canvas
+bash deployment/canvas/scripts/setup.sh stop
+
+# Poste
+bash deployment/poste/scripts/setup.sh stop
+
+# WooCommerce
+bash deployment/woocommerce/scripts/setup.sh stop
+
+# Kubernetes
+kind delete cluster --name cluster1
+```
+
+### 完全清理 (包括数据)
+
+```bash
+# 删除所有容器
+docker rm -f $(docker ps -aq) 2>/dev/null
+
+# 删除 Poste 数据
+rm -rf deployment/poste/data
+rm -rf deployment/poste/configs
+
+# 删除 Canvas 日志和配置
+rm -rf deployment/canvas/logs
+rm -rf deployment/canvas/tmp
+rm -rf deployment/canvas/configs
+
+# 删除 WooCommerce 配置
+rm -rf deployment/woocommerce/configs
+
+# 删除 Kubernetes 配置
+rm -rf deployment/k8s/configs
+```
+
+---
+
+
+# 第五步: 验证 MCP 服务器配置
+
+>**完成第五步后得到**:
+>- 所有 MCP 服务器的 npm/Python 包已正确安装
+>- 所有 API 凭证和配置文件正确填写
+>- 本地服务 (Canvas/Poste/WooCommerce/K8s) 可以被 MCP 服务器访问
+>- Docker/Podman socket 可以正常挂载到容器
+>- Toolathlon 评估环境完全就绪
+
+## 为什么要等到第五步才验证?
+
+让我们先澄清 **MCP 服务器的部署方式**:
+
+### MCP 服务器不是后台服务
+
+- ❌ **第一步**: `npm install` 只是安装了 MCP 服务器的 **npm 包**，并没有"启动"或"部署"它们
+- ❌ MCP 服务器不像 Docker 容器那样作为后台进程运行
+- ✅ MCP 服务器是 **按需启动** 的命令行工具，通过 `npx`/`uv`/`uvx` 等命令动态调用
+
+### 为什么必须在第五步验证?
+
+MCP 服务器的启动依赖于前面步骤完成的配置:
+
+| MCP 服务器 | 依赖的配置/服务 | 来自哪一步 |
+|-----------|---------------|----------|
+| **filesystem** | 无依赖 | - |
+| **time** | `timezone` 配置 | 第一步 (配置文件) |
+| **github** | GitHub token | **第三步** (API 凭证) |
+| **notion_official** | Notion workspace 授权 | **第三步** (Notion 配置) |
+| **google_calendar** | Google OAuth 凭证 | **第三步** (Google Cloud 配置) |
+| **gmail** | Google OAuth 凭证 | **第三步** (Google Cloud 配置) |
+| **canvas** | Canvas LMS 运行 + API token | **第四步** (本地服务部署) |
+| **k8s** | Kubernetes 集群 + kubeconfig | **第四步** (K8s 集群部署) |
+| **woocommerce** | WooCommerce 运行 + API 密钥 | **第四步** (WooCommerce 部署) |
+
+**所以必须在完成第三步(API凭证)和第四步(本地服务)之后，才能验证所有 MCP 服务器是否正常工作。**
+
+
+## 5.1 MCP 服务器配置清单
+
+Toolathlon 配置了 **20+ MCP 服务器**，分为以下类别:
+
+<details open>
+<summary><b>文件和数据处理 MCP 服务器</b></summary>
+
+| MCP 服务器 | 配置文件 | 命令 | 用途 |
+|-----------|---------|------|------|
+| **filesystem** | `configs/mcp_servers/filesystem.yaml` | `npx @modelcontextprotocol/server-filesystem` | 文件读写操作 |
+| **excel** | `configs/mcp_servers/excel.yaml` | `uv run excel-mcp-server stdio` | Excel 表格处理 |
+| **pdf-tools** | `configs/mcp_servers/pdf-tools.yaml` | `uvx pdf-tools-mcp` | PDF 文档读取和处理 |
+
+</details>
+
+<details open>
+<summary><b>Google 服务 MCP 服务器</b></summary>
+
+| MCP 服务器 | 配置文件 | 依赖凭证 | 用途 |
+|-----------|---------|---------|------|
+| **google_calendar** | `configs/mcp_servers/google_calendar.yaml` | Google OAuth | 日历管理 |
+| **gmail** | `configs/mcp_servers/gmail.yaml` | Google OAuth | 邮件发送/接收 |
+| **google_maps** | `configs/mcp_servers/google_maps.yaml` | Google API Key | 地图/导航查询 |
+| **google_drive** | `configs/mcp_servers/google_drive.yaml` | Google OAuth | Drive 文件管理 |
+
+</details>
+
+<details open>
+<summary><b>开发和协作 MCP 服务器</b></summary>
+
+| MCP 服务器 | 配置文件 | 依赖凭证 | 用途 |
+|-----------|---------|---------|------|
+| **github** | `configs/mcp_servers/github.yaml` | GitHub token | 代码仓库操作 |
+| **notion_official** | `configs/mcp_servers/notion_official.yaml` | Notion workspace 授权 | 笔记管理 |
+| **terminal** | `configs/mcp_servers/terminal.yaml` | 无 | 终端命令执行 |
+
+</details>
+
+<details open>
+<summary><b>本地应用 MCP 服务器</b></summary>
+
+| MCP 服务器 | 配置文件 | 依赖服务 | 用途 |
+|-----------|---------|---------|------|
+| **canvas** | `configs/mcp_servers/canvas.yaml` | Canvas LMS | 学习管理系统操作 |
+| **k8s** | `configs/mcp_servers/k8s.yaml` | Kubernetes 集群 | 容器编排操作 |
+| **woocommerce** | `configs/mcp_servers/woocommerce.yaml` | WooCommerce | 电商平台操作 |
+| **poste** | `configs/mcp_servers/poste.yaml` | Poste 邮件服务器 | SMTP/IMAP 邮件操作 |
+
+</details>
+
+<details>
+<summary><b>专用工具 MCP 服务器</b></summary>
+
+| MCP 服务器 | 配置文件 | 用途 |
+|-----------|---------|------|
+| **arxiv_local** | `configs/mcp_servers/arxiv_local.yaml` | arXiv 论文搜索和下载 |
+| **youtube-transcript** | `configs/mcp_servers/youtube_transcript.yaml` | YouTube 视频字幕提取 |
+| **huggingface** | `configs/mcp_servers/huggingface.yaml` | HuggingFace 模型/数据集操作 |
+| **time** | `configs/mcp_servers/time.yaml` | 时间查询 |
+| **wandb** | `configs/mcp_servers/wandb.yaml` | 实验跟踪 |
+
+</details>
+
+**完整列表**: 可以查看 [`configs/mcp_servers/`](https://github.com/hkust-nlp/Toolathlon/tree/main/configs/mcp_servers) 目录。
+
+
+## 5.2 MCP 服务器配置文件结构
+
+每个 MCP 服务器都有一个 YAML 配置文件，定义了如何启动它:
+
+**示例: GitHub MCP 服务器** (`configs/mcp_servers/github.yaml`)
+
+```yaml
+# GitHub MCP Server
+type: stdio                          # 通信方式: stdio (标准输入输出)
+name: github                         # MCP 服务器名称
+params:
+  command: ${local_binary_paths}/github-mcp-server  # 启动命令 (Go 二进制)
+  args:
+    - "stdio"                        # 参数
+  env:
+    GITHUB_PERSONAL_ACCESS_TOKEN: "${token.github_token}"        # 🔑 从 token_key_session.py 读取
+    GITHUB_ALLOWED_REPOS: "${token.github_allowed_repos}"        # 允许访问的仓库
+    GITHUB_READ_ONLY: "${token.github_read_only}"                # 是否只读
+client_session_timeout_seconds: 50   # 超时时间
+cache_tools_list: true               # 缓存工具列表
+```
+
+**模板变量替换**:
+- `${token.github_token}` → 从 `configs/token_key_session.py` 的 `github_token` 字段读取
+- `${local_binary_paths}` → 指向 `local_binary/` 目录
+- `${agent_workspace}` → 指向任务工作空间
+
+**示例: Canvas MCP 服务器** (`configs/mcp_servers/canvas.yaml`)
+
+```yaml
+type: stdio
+name: canvas
+params:
+  command: npx                       # 通过 npx 运行 npm 包
+  args:
+    - "-y"
+    - "canvas-mcp-server"            # npm 包名称
+  env:
+    CANVAS_API_TOKEN: "${token.canvas_api_token}"   # 🔑 Canvas API token
+    CANVAS_DOMAIN: "${token.canvas_domain}"         # Canvas 域名 (localhost:20001)
+    NODE_TLS_REJECT_UNAUTHORIZED: "0"               # 忽略自签名证书
+  cwd: "${agent_workspace}"          # 工作目录
+client_session_timeout_seconds: 10
+cache_tools_list: true
+```
+
+## 5.3 运行验证脚本
+
+```bash
+bash global_preparation/check_installation_containerized.sh
+```
+
+**⚠️ 为什么使用容器化验证?**
+
+验证脚本在容器内运行，确保:
+1. ✅ 使用与实际评估相同的环境
+2. ✅ 测试容器内的 MCP 服务器可以正常启动
+3. ✅ 验证凭证文件可以正确挂载到容器
+4. ✅ 检查 Docker/Podman socket 是否可访问 (K8s MCP 需要)
+
+
+## 5.4 验证脚本执行流程
+
+<details open>
+<summary><b>📋 阶段 1: 准备容器环境</b></summary>
+
+```
+Preparing project files...
+Using container runtime: docker
+Verifying file existence...
+  ✓ configs exists
+  ✓ deployment/k8s exists
+  ✓ scripts exists
+  ✓ global_preparation/check_installation.py exists
+  ✓ utils exists
+  ✓ main.py exists
+```
+
+脚本会将必要的文件复制到容器:
+- `configs/` - 所有配置文件 (包括 API 凭证)
+- `deployment/k8s/` - Kubernetes 配置
+- `global_preparation/check_installation.py` - 验证脚本
+- `utils/` - MCP 工具库
+
+</details>
+
+<details open>
+<summary><b>🐳 阶段 2: 启动验证容器</b></summary>
+
+```
+Step 1: Starting container and keeping it running...
+Configuring Docker environment...
+Using Docker socket: /var/run/docker.sock
+✓ Container started successfully
+  Container ID: abc123def456
+  Container name: toolathlon-check-installation-20260128-143022
+```
+
+容器配置:
+- **镜像**: `lockon0927/toolathlon-task-image:1016beta` (第二步拉取的镜像)
+- **网络**: `--network host` (访问本地服务 Canvas/Poste/WooCommerce)
+- **挂载 Docker socket**: `-v /var/run/docker.sock:/var/run/docker.sock` (K8s MCP 需要)
+- **挂载 Podman socket** (如果使用 Podman): `-v /run/podman/podman.sock:/run/podman/podman.sock`
+
+</details>
+
+<details open>
+<summary><b>✅ 阶段 3: 验证 MCP 服务器</b></summary>
+
+容器内运行 `uv run -m global_preparation.check_installation`
+
+**验证过程**:
+
+```python
+for server_name in to_check_servers:
+    if server_name == "huggingface":
+        continue  # HuggingFace 远程 MCP 不验证
+    
+    # 尝试启动 MCP 服务器并调用 list_tools()
+    async with server_x as server:
+        tools = await server.list_tools()  # 获取服务器提供的工具列表
+    
+    # 成功获取工具列表，说明服务器正常
+    print(f"✅ {server_name} MCP server OK")
+```
+
+**预期输出** (成功):
+
+```
+Server filesystem is checking (attempt 1) ... 
+✅ filesystem MCP server OK
+
+Server github is checking (attempt 1) ... 
+✅ github MCP server OK
+
+Server notion_official is checking (attempt 1) ... 
+✅ notion_official MCP server OK
+
+Server google_calendar is checking (attempt 1) ... 
+✅ google_calendar MCP server OK
+
+Server gmail is checking (attempt 1) ... 
+✅ gmail MCP server OK
+
+Server canvas is checking (attempt 1) ... 
+✅ canvas MCP server OK
+
+Server k8s is checking (attempt 1) ... 
+✅ k8s MCP server OK
+
+Server woocommerce is checking (attempt 1) ... 
+✅ woocommerce MCP server OK
+
+Server terminal is checking (attempt 1) ... 
+✅ terminal MCP server OK
+
+Server excel is checking (attempt 1) ... 
+✅ excel MCP server OK
+
+Server pdf-tools is checking (attempt 1) ... 
+✅ pdf-tools MCP server OK
+
+Server arxiv_local is checking (attempt 1) ... 
+✅ arxiv_local MCP server OK
+
+Server youtube-transcript is checking (attempt 1) ... 
+✅ youtube-transcript MCP server OK
+
+Server time is checking (attempt 1) ... 
+✅ time MCP server OK
+
+... (更多 MCP 服务器)
+```
+
+**失败示例**:
+
+```
+Server github is checking (attempt 1) ... 
+❌ Server github check failed (attempt 1): Invalid GitHub token
+
+Server github is checking (attempt 2) ... 
+❌ Server github check failed (attempt 2): Invalid GitHub token
+
+Server github is checking (attempt 3) ... 
+❌ Server github check failed (attempt 3): Invalid GitHub token
+
+Server github is checking (attempt 4) ... 
+❌ Server github is checked with error after 4 attempts: Invalid GitHub token
+```
+
+**重试机制**: 每个 MCP 服务器最多重试 **4 次**，每次间隔 0.8 秒。
+
+</details>
+
+<details>
+<summary><b>阶段 4: 清理容器</b></summary>
+
+```
+Cleaning up container...
+✓ Container stopped and removed
+```
+
+验证完成后自动删除容器。
+
+</details>
+
+
+## 5.5 验证失败的常见原因和解决方法
+
+<details>
+<summary><b>❌ GitHub MCP 服务器验证失败</b></summary>
+
+**错误信息**:
+```
+❌ Server github check failed: Invalid GitHub token
+```
+
+**原因**:
+- GitHub token 无效或过期
+- `configs/token_key_session.py` 中的 `github_token` 未填写或填写错误
+
+**解决方法**:
+```bash
+# 1. 检查 token 是否正确填写
+grep "github_token" configs/token_key_session.py
+
+# 2. 测试 token 是否有效
+curl -H "Authorization: token YOUR_GITHUB_TOKEN" https://api.github.com/user
+
+# 3. 如果 token 无效，重新生成 (见第三步)
+bash global_preparation/automated_additional_services.sh
+
+# 4. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+</details>
+
+<details>
+<summary><b>❌ Notion MCP 服务器验证失败</b></summary>
+
+**错误信息**:
+```
+❌ Server notion_official check failed: Not authenticated
+```
+
+**原因**:
+- 未运行 `uv run -m global_preparation.special_setup_notion_official` 授权 Notion workspace
+- `configs/.mcp-auth/` 目录不存在或权限错误
+
+**解决方法**:
+```bash
+# 1. 重新授权 Notion workspace
+rm -rf configs/.mcp-auth
+uv run -m global_preparation.special_setup_notion_official
+
+# 2. 检查授权文件是否生成
+ls -la configs/.mcp-auth/
+
+# 3. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+</details>
+
+<details>
+<summary><b>❌ Google Calendar/Gmail MCP 服务器验证失败</b></summary>
+
+**错误信息**:
+```
+❌ Server google_calendar check failed: Invalid credentials
+```
+
+**原因**:
+- Google OAuth 凭证未配置或已过期
+- `configs/google_credentials.json` 文件不存在或格式错误
+
+**解决方法**:
+```bash
+# 1. 检查 OAuth 凭证文件
+cat configs/google_credentials.json | jq '.'
+
+# 2. 重新生成 OAuth 凭证
+uv run global_preparation/simple_google_auth.py
+
+# 3. 验证凭证
+cat configs/google_credentials.json | jq '.refresh_token'
+
+# 4. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+</details>
+
+<details>
+<summary><b>❌ Canvas MCP 服务器验证失败</b></summary>
+
+**错误信息**:
+```
+❌ Server canvas check failed: Connection refused
+```
+
+**原因**:
+- Canvas LMS 未运行
+- Canvas 域名配置错误 (应为 `localhost:20001`)
+
+**解决方法**:
+```bash
+# 1. 检查 Canvas 容器是否运行
+docker ps | grep canvas
+
+# 2. 如果未运行，重新部署
+bash deployment/canvas/scripts/setup.sh start
+
+# 3. 测试 Canvas 是否可访问
+curl -s http://localhost:10001 | grep -i canvas
+
+# 4. 检查 token_key_session.py 中的域名配置
+grep "canvas_domain" configs/token_key_session.py
+# 应显示: canvas_domain = "localhost:20001"
+
+# 5. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+</details>
+
+<details>
+<summary><b>❌ Kubernetes MCP 服务器验证失败</b></summary>
+
+**错误信息**:
+```
+❌ Server k8s check failed: kubeconfig not found
+```
+
+**原因**:
+- Kubernetes 集群未创建
+- kubeconfig 文件路径错误
+
+**解决方案**:
+```bash
+# 1. 检查 Kind 集群是否存在
+kind get clusters
+# 应显示: cluster1
+
+# 2. 如果不存在，重新创建
+bash deployment/k8s/scripts/setup.sh
+
+# 3. 检查 kubeconfig 文件
+ls -la deployment/k8s/configs/cluster1-config.yaml
+
+# 4. 测试 kubeconfig 是否有效
+kubectl --kubeconfig=deployment/k8s/configs/cluster1-config.yaml get nodes
+
+# 5. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+</details>
+
+<details>
+<summary><b>❌ WooCommerce MCP 服务器验证失败</b></summary>
+
+**错误信息**:
+```
+❌ Server woocommerce check failed: HTTP 404
+```
+
+**原因**:
+- WooCommerce 未运行
+- API 端点错误
+
+**解决方法**:
+```bash
+# 1. 检查 WooCommerce 容器是否运行
+docker ps | grep woo
+
+# 2. 如果未运行，重新部署
+bash deployment/woocommerce/scripts/setup.sh start 81 20
+
+# 3. 测试 WooCommerce 是否可访问
+curl -s http://localhost:10003 | grep -i woocommerce
+
+# 4. 测试 API
+CONSUMER_KEY="ck_woocommerce_token_admin"
+CONSUMER_SECRET="cs_woocommerce_token_admin"
+curl -u "$CONSUMER_KEY:$CONSUMER_SECRET" \
+  "http://localhost:10003/wp-json/wc/v3/system_status"
+
+# 5. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+</details>
+
+<details>
+<summary><b>⚠️ Docker/Podman Socket 不可访问</b></summary>
+
+**错误信息**:
+```
+Warning: Docker socket not found
+Warning: Podman socket not found， Kind may not work
+```
+
+**原因**:
+- Docker/Podman 未运行
+- Socket 文件不存在
+- 容器内无法访问宿主机 socket
+
+**解决方法 (Docker)**:
+```bash
+# 1. 检查 Docker 是否运行
+docker ps
+
+# 2. 检查 socket 是否存在
+ls -l /var/run/docker.sock
+
+# 3. 重启 Docker
+sudo systemctl restart docker
+
+# 4. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+**解决方法 (Podman)**:
+```bash
+# 1. 启动 Podman socket
+systemctl --user start podman.socket
+
+# 2. 检查 socket 是否存在
+ls -l /run/user/$(id -u)/podman/podman.sock
+
+# 3. 重新验证
+bash global_preparation/check_installation_containerized.sh
+```
+
+</details>
+
+
+## 5.6 验证成功后的输出
+
+如果所有 MCP 服务器验证通过，您会看到:
+
+```
+✅ All MCP servers checked successfully!
+
+Summary:
+  Total servers: 20
+  Passed: 20
+  Failed: 0
+  Skipped: 1 (huggingface)
+
+Verified MCP servers:
+  ✓ filesystem
+  ✓ github
+  ✓ notion_official
+  ✓ google_calendar
+  ✓ gmail
+  ✓ google_drive
+  ✓ google_maps
+  ✓ canvas
+  ✓ k8s
+  ✓ woocommerce
+  ✓ poste
+  ✓ terminal
+  ✓ excel
+  ✓ pdf-tools
+  ✓ arxiv_local
+  ✓ youtube-transcript
+  ✓ time
+  ✓ wandb
+  ✓ ...
+```
+
+
+## 5.7 手动验证单个 MCP 服务器 (调试用)
+
+如果您想单独测试某个 MCP 服务器，可以直接运行:
+
+```bash
+# 创建测试工作空间
+mkdir -p test_mcp
+
+# 测试 filesystem MCP
+npx -y @modelcontextprotocol/server-filesystem test_mcp
+
+# 测试 GitHub MCP (需要设置环境变量)
+export GITHUB_PERSONAL_ACCESS_TOKEN="YOUR_GITHUB_TOKEN"
+export GITHUB_ALLOWED_REPOS="null"
+export GITHUB_READ_ONLY="1"
+./local_binary/github-mcp-server stdio
+
+# 测试 Canvas MCP
+export CANVAS_API_TOKEN="canvas_token_xxx"
+export CANVAS_DOMAIN="localhost:20001"
+export NODE_TLS_REJECT_UNAUTHORIZED="0"
+npx -y canvas-mcp-server
+```
+
+
+## 5.8 验证时间估算
+
+| MCP 服务器类别 | 数量 | 预计时间 |
+|-------------|------|---------|
+| 文件和数据处理 | 3 | 10-30 秒 |
+| Google 服务 | 4 | 20-40 秒 |
+| 开发和协作 | 3 | 15-30 秒 |
+| 本地应用 | 4 | 30-60 秒 |
+| 专用工具 | 6 | 30-60 秒 |
+| **总计** | **20** | **2-4 分钟** |
+
+**影响因素**:
+- 首次运行需要下载某些工具包 (如 `uvx` 自动下载)
+- 网络速度 (访问远程 API)
+- 容器启动速度
+
+---
+
+
+# 第六步: 配置模型 API
+
+Toolathlon 支持多种模型部署方式，从公有云 API 到本地部署模型。需要根据评估的模型选择对应的配置方法。
+
+>**完成第六步后得到**：
+>- 模型 API 的 Base URL 和 API Key
+>- 选择了合适的 Provider (unified 或特定平台)
+>- 验证了 API 连接可用性
+>- (可选) 自定义了模型参数
+
+## 6.1 理解 Toolathlon 的模型架构
+
+### 统一接口设计
+
+Toolathlon 使用 **OpenAI SDK 兼容接口**，支持所有兼容 OpenAI API 格式的模型服务:
+
+```python
+# utils/api_model/model_provider.py
+client = AsyncOpenAI(
+    api_key=your_api_key，
+    base_url=your_base_url  # 唯一需要变化的部分
+)
+```
+
+### 支持的模型提供商
+
+| Provider 名称 | Base URL | 用途 |
+|--------------|----------|------|
+| **unified** | 自定义 (`TOOLATHLON_OPENAI_BASE_URL`) |  **推荐** - 通用接口，支持任何 OpenAI 兼容 API |
+| **aihubmix** | `https://aihubmix.com/v1` | 多模型聚合平台 |
+| **anthropic** | `https://api.anthropic.com/v1/` | Claude 官方 API |
+| **google** | `https://generativelanguage.googleapis.com/v1beta/openai/` | Gemini 官方 API |
+| **openrouter** | `https://openrouter.ai/api/v1` | 多模型路由平台 |
+| **qwen_official** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 阿里云通义千问 |
+| **kimi_official** | `https://api.moonshot.cn/v1` | 月之暗面 Kimi |
+| **deepseek_official** | `https://api.deepseek.com/v1` | DeepSeek 官方 |
+| **xai** | `https://api.x.ai/v1` | xAI Grok |
+| **local_vllm** | `http://localhost:8000/v1` | 本地 vLLM 服务 |
+
+### 模型映射机制
+
+Toolathlon 维护了一个模型映射表 (`API_MAPPINGS`)，将友好的模型名称映射到各个 Provider 的实际模型名:
+
+```python
+# 示例: Claude 4.5 Sonnet
+'claude-4.5-sonnet-0929': {
+    "aihubmix": "claude-sonnet-4-5-20250929"，
+    "anthropic": "claude-sonnet-4-5-20250929"，  # 官方 API 使用这个名称
+    "openrouter": "anthropic/claude-sonnet-4.5"  # OpenRouter 使用这个名称
+}
+
+# 示例: GPT-5
+'gpt-5': {
+    "aihubmix": "gpt-5"，
+    "openrouter": "openai/gpt-5"
+}
+```
+
+**查看所有支持的模型**: [`utils/api_model/model_provider.py#L1146-L1372`](https://github.com/hkust-nlp/Toolathlon/blob/main/utils/api_model/model_provider.py#L1146-L1372)
+
+
+## 6.2 配置方法一: 使用 Unified Provider (推荐)
+
+**适用场景**:
+- ✅ 使用本地部署模型 (vLLM/SGLang/Ollama/LMStudio)
+- ✅ 使用任何 OpenAI 兼容 API
+- ✅ 直接调用 OpenAI/Anthropic/Google 官方 API
+- ✅ 使用代理或中转服务
+
+### 配置环境变量
+
+```bash
+# 必需: 设置 Base URL
+export TOOLATHLON_OPENAI_BASE_URL="your-api-base-url"
+
+# 必需: 设置 API Key (本地服务可用 "dummy")
+export TOOLATHLON_OPENAI_API_KEY="your-api-key"
+```
+
+### 使用示例
+
+<details open>
+<summary><b>示例 1: 本地 vLLM 服务</b></summary>
+
+**启动 vLLM 服务**:
+```bash
+# 安装 vLLM
+pip install vllm
+
+# 启动模型服务
+vllm serve /path/to/your/model \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --tensor-parallel-size 4 \
+  --gpu-memory-utilization 0.9 \
+  --max-model-len 32768
+```
+
+**配置 Toolathlon**:
+```bash
+# 设置环境变量
+export TOOLATHLON_OPENAI_BASE_URL="http://localhost:8000/v1"
+export TOOLATHLON_OPENAI_API_KEY="dummy"  # vLLM 不需要真实 key
+
+# 运行评估
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  your-model-name \  # 模型名称 (会传给 vLLM 的 /v1/chat/completions)
+  unified             # Provider 设为 unified
+```
+
+</details>
+
+<details>
+<summary><b>示例 2: 本地 SGLang 服务</b></summary>
+
+**启动 SGLang 服务**:
+```bash
+# 安装 SGLang
+pip install "sglang[all]"
+
+# 启动模型服务
+python -m sglang.launch_server \
+  --model-path /path/to/your/model \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --tp 4
+```
+
+**配置 Toolathlon**:
+```bash
+export TOOLATHLON_OPENAI_BASE_URL="http://localhost:8000/v1"
+export TOOLATHLON_OPENAI_API_KEY="dummy"
+
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  your-model-name \
+  unified
+```
+
+</details>
+
+<details>
+<summary><b>示例 3: Ollama</b></summary>
+
+**启动 Ollama**:
+```bash
+# 安装 Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 拉取模型
+ollama pull qwen2.5-coder:32b
+
+# Ollama 默认运行在 11434 端口
+```
+
+**配置 Toolathlon**:
+```bash
+export TOOLATHLON_OPENAI_BASE_URL="http://localhost:11434/v1"
+export TOOLATHLON_OPENAI_API_KEY="ollama"
+
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  qwen2.5-coder:32b \  # Ollama 模型名称
+  unified
+```
+
+</details>
+
+<details>
+<summary><b>示例 4: OpenAI 官方 API</b></summary>
+
+```bash
+export TOOLATHLON_OPENAI_BASE_URL="https://api.openai.com/v1"
+export TOOLATHLON_OPENAI_API_KEY="sk-your-openai-api-key"
+
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  gpt-4o \  # 或 gpt-4o-mini， o1， o4-mini 等
+  unified
+```
+
+</details>
+
+<details>
+<summary><b>示例 5: Anthropic 官方 API</b></summary>
+
+```bash
+export TOOLATHLON_OPENAI_BASE_URL="https://api.anthropic.com/v1/"
+export TOOLATHLON_OPENAI_API_KEY="sk-ant-your-anthropic-api-key"
+
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  claude-sonnet-4-5-20250929 \  # Anthropic 的实际模型名称
+  unified
+```
+
+</details>
+
+<details>
+<summary><b>示例 6: OpenRouter (多模型平台)</b></summary>
+
+```bash
+export TOOLATHLON_OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+export TOOLATHLON_OPENAI_API_KEY="sk-or-your-openrouter-key"
+
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  anthropic/claude-sonnet-4.5 \  # OpenRouter 的模型名称
+  unified
+```
+
+</details>
+
+
+## 6.3 配置方法二: 使用预配置的 Provider
+
+如果您经常使用某个特定平台，可以在 `configs/global_configs.py` 中填写 API Key，然后直接指定 Provider。
+
+### 配置 API Keys
+
+编辑 `configs/global_configs.py`:
+
+```python
+from addict import Dict
+global_configs = Dict(
+    # ======== 模型 API Keys ========
+    aihubmix_key="your-aihubmix-key"，
+    openrouter_key="sk-or-your-openrouter-key"，
+    anthropic_official_key="sk-ant-your-anthropic-key"，
+    openai_official_key="sk-your-openai-key"，
+    google_official_key="your-google-api-key"，
+    qwen_official_key="sk-your-qwen-key"，
+    kimi_official_key="your-kimi-key"，
+    deepseek_official_key="sk-your-deepseek-key"，
+    xai_official_key="xai-your-xai-key"，
+    
+    # ======== 容器引擎配置 ========
+    podman_or_docker="docker"，
+    notion_preprocess_with_playwright=False，
+)
+```
+
+### 使用示例
+
+<details open>
+<summary><b>使用 OpenRouter</b></summary>
+
+```bash
+# 不需要设置环境变量，直接使用 global_configs.py 中的 key
+
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  gpt-5 \          # Toolathlon 的模型名称 (会自动映射为 "openai/gpt-5")
+  openrouter       # 指定 provider
+```
+
+Toolathlon 会自动:
+1. 从 `API_MAPPINGS['gpt-5']` 中查找 `openrouter` 对应的模型名 → `"openai/gpt-5"`
+2. 从 `global_configs.openrouter_key` 读取 API Key
+3. 使用 `https://openrouter.ai/api/v1` 作为 Base URL
+
+</details>
+
+<details>
+<summary><b>使用 Anthropic 官方 API</b></summary>
+
+```bash
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  claude-4.5-sonnet-0929 \  # Toolathlon 模型名
+  anthropic                 # Provider
+```
+
+自动映射为: `claude-sonnet-4-5-20250929` @ `https://api.anthropic.com/v1/`
+
+</details>
+
+<details>
+<summary><b>使用 Google Gemini</b></summary>
+
+```bash
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  gemini-2.5-pro \  # Toolathlon 模型名
+  google            # Provider
+```
+
+自动映射为: `gemini-2.5-pro` @ `https://generativelanguage.googleapis.com/v1beta/openai/`
+
+</details>
+
+<details>
+<summary><b>使用 DeepSeek</b></summary>
+
+```bash
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  deepseek-v3.2-exp \   # Toolathlon 模型名
+  deepseek_official     # Provider
+```
+
+自动映射为: `deepseek-chat` @ `https://api.deepseek.com/v1`
+
+</details>
+
+
+## 6.4 支持的模型列表
+
+### 顶级商业模型
+
+| Toolathlon 模型名 | 实际模型 | 推荐 Provider | Context Window |
+|-----------------|---------|--------------|----------------|
+| **gpt-5** | GPT-5 | `openrouter` | 400K |
+| **gpt-5-mini** | GPT-5 Mini | `openrouter` | 400K |
+| **o4-mini** | o4-mini | `openrouter` | 200K |
+| **o3** | o3 | `openrouter` | 200K |
+| **claude-4.5-sonnet-0929** | Claude Sonnet 4.5 | `anthropic` / `openrouter` | 1000K |
+| **claude-4.5-opus** | Claude Opus 4.5 | `openrouter` | 1000K |
+| **claude-4.1-opus-0805** | Claude Opus 4.1 | `anthropic` / `openrouter` | 200K |
+| **gemini-3-pro-preview** | Gemini 3 Pro | `openrouter` | 1000K |
+| **gemini-2.5-pro** | Gemini 2.5 Pro | `google` / `openrouter` | 1000K |
+| **gemini-2.5-flash** | Gemini 2.5 Flash | `google` / `openrouter` | 1000K |
+
+### 开源/国产模型
+
+| Toolathlon 模型名 | 实际模型 | 推荐 Provider | Context Window |
+|-----------------|---------|--------------|----------------|
+| **deepseek-v3.2-exp** | DeepSeek Chat | `deepseek_official` | 128K |
+| **qwen-3-coder** | Qwen3 Coder Plus | `qwen_official` | 256K |
+| **qwen-3-max** | Qwen3 Max | `qwen_official` / `openrouter` | 256K |
+| **kimi-k2-0905** | Kimi K2 | `kimi_official` / `openrouter` | 256K |
+| **grok-4** | Grok 4 | `xai` / `openrouter` | 256K |
+| **grok-code-fast-1** | Grok Code Fast | `xai` / `openrouter` | 256K |
+| **glm-4.6** | GLM 4.6 | `openrouter` | 128K |
+| **minimax-m2** | MiniMax M2 | `openrouter` | 200K |
+
+### 本地部署模型
+
+| 模型 | 推荐部署方式 | Provider 配置 |
+|------|------------|--------------|
+| Qwen2.5-Coder-32B | vLLM / SGLang | `unified` |
+| DeepSeek-V3 | vLLM (需要多 GPU) | `unified` |
+| Llama 3.3 70B | vLLM / Ollama | `unified` |
+| 任意开源模型 | vLLM / SGLang / Ollama | `unified` |
+
+**完整列表**: 查看 [`utils/api_model/model_provider.py#L1146-L1372`](https://github.com/hkust-nlp/Toolathlon/blob/main/utils/api_model/model_provider.py#L1146-L1372)
+
+
+## 6.5 高级配置: 自定义模型参数
+
+如果需要精确控制模型参数 (如 `temperature`， `top_p`， `max_tokens` 等)，可以通过配置文件覆盖默认设置。
+
+### 创建自定义参数文件
+
+```bash
+# 创建参数文件
+cat > my_model_params.json <<EOF
+{
+  "temperature": 0.7，
+  "top_p": 0.95，
+  "max_tokens": 8192，
+  "frequency_penalty": 0.1，
+  "presence_penalty": 0.1
+}
+EOF
+```
+
+### 使用自定义参数
+
+```bash
+# 设置参数文件路径
+export TOOLATHLON_MODEL_PARAMS_FILE="$(pwd)/my_model_params.json"
+
+# 运行评估
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  your-model-name \
+  unified
+```
+
+**源码参考**: [`utils/api_model/model_provider.py#L495-L516`](https://github.com/hkust-nlp/Toolathlon/blob/main/utils/api_model/model_provider.py#L495-L516)
+
+
+## 6.6 验证配置
+
+### 测试 1: 检查环境变量
+
+```bash
+# 验证环境变量是否设置
+echo "Base URL: $TOOLATHLON_OPENAI_BASE_URL"
+echo "API Key: ${TOOLATHLON_OPENAI_API_KEY:0:10}..."  # 只显示前 10 个字符
+```
+
+### 测试 2: 验证 API 连接
+
+```bash
+# 测试本地 vLLM/SGLang 服务
+curl http://localhost:8000/v1/models
+
+# 测试 OpenAI 兼容 API
+curl -H "Authorization: Bearer $TOOLATHLON_OPENAI_API_KEY" \
+     "$TOOLATHLON_OPENAI_BASE_URL/models"
+```
+
+### 测试 3: 运行快速示例
+
+```bash
+# 运行一个最简单的任务测试模型连接
+bash scripts/run_single_containerized.sh \
+  finalpool/find-alita-paper \
+  quickstart \
+  ./dumps_test \
+  your-model-name \
+  unified
+
+# 检查日志
+tail -f ./dumps_test/finalpool/find-alita-paper/run.log
+```
+
+**预期输出** (成功):
+```
+[ModelProvider] Using DEFAULT parameters mode
+Calling LLM...
+ASSISTANT: I'll help you find the ALITA paper...
+```
+
+**错误输出** (API Key 错误):
+```
+Error in get_response: Error code: 401 - {'error': {'message': 'Incorrect API key provided'}}
+```
+
+**错误输出** (Base URL 错误):
+```
+Error in get_response: Error code: 404 - Not Found
+```
+
+
+## 6.7 常见问题
+
+<details>
+<summary><b>Q: 为什么推荐使用 unified provider?</b></summary>
+
+**优势**:
+1. ✅ **通用性**: 支持任何 OpenAI 兼容 API
+2. ✅ **灵活性**: 环境变量配置，无需修改代码
+3. ✅ **本地部署**: 最佳支持本地 vLLM/SGLang/Ollama
+4. ✅ **代理支持**: 可以使用中转服务或代理
+
+**适合场景**: 99% 的情况
+
+</details>
+
+<details>
+<summary><b>Q: 本地模型如何选择 vLLM 还是 SGLang?</b></summary>
+
+| 特性 | vLLM | SGLang |
+|------|------|--------|
+| **性能** | 优秀 | 更优秀 (尤其长 context) |
+| **兼容性** | 成熟，广泛支持 | 较新，部分模型支持 |
+| **易用性** | 简单 | 较简单 |
+| **多 GPU** | 完善支持 | 完善支持 |
+
+**推荐**: 
+- 常规模型: **vLLM**
+- 长 context/需要极致性能: **SGLang**
+
+</details>
+
+<details>
+<summary><b>Q: 如何确定模型名称?</b></summary>
+
+**对于本地模型**:
+- vLLM/SGLang: 使用模型的 HuggingFace 路径或本地路径
+- Ollama: 使用 `ollama list` 中显示的名称
+
+**对于 API 服务**:
+- 查看 `API_MAPPINGS` 中的 Toolathlon 标准名称
+- 或直接使用 Provider 的官方模型名 + `unified` provider
+
+</details>
+
+<details>
+<summary><b>Q: 环境变量在容器内生效吗?</b></summary>
+
+**是的**。`run_single_containerized.sh` 会自动将 `TOOLATHLON_OPENAI_*` 环境变量传递到容器内:
+
+```bash
+# scripts/run_single_containerized.sh#L130-L140
+if [ -n "$TOOLATHLON_OPENAI_BASE_URL" ]; then
+    EXTRA_ENV_ARGS+=("-e" "TOOLATHLON_OPENAI_BASE_URL=$TOOLATHLON_OPENAI_BASE_URL")
+fi
+if [ -n "$TOOLATHLON_OPENAI_API_KEY" ]; then
+    EXTRA_ENV_ARGS+=("-e" "TOOLATHLON_OPENAI_API_KEY=$TOOLATHLON_OPENAI_API_KEY")
+fi
+```
+
+</details>
+
+<details>
+<summary><b>Q: 可以同时使用多个模型吗?</b></summary>
+
+**可以**，但需要分别运行评估:
+
+```bash
+# 评估模型 A
+export TOOLATHLON_OPENAI_BASE_URL="http://localhost:8000/v1"
+bash scripts/run_single_containerized.sh ... model-a unified
+
+# 评估模型 B
+export TOOLATHLON_OPENAI_BASE_URL="http://localhost:8001/v1"
+bash scripts/run_single_containerized.sh ... model-b unified
+```
+
+</details>
+
+<details>
+<summary><b>Q: 如何限制 API 调用速率?</b></summary>
+
+Toolathlon 内置了并发控制，可以通过 `API_MAPPINGS` 中的 `concurrency` 字段调整:
+
+```python
+'your-model': {
+    'concurrency': 16，  # 默认 32，降低可减少并发
+    ...
+}
+```
+
+或在运行时通过配置文件控制 (见 6.5 节)。
+
+</details>
+
+---
